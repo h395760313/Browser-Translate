@@ -1,0 +1,258 @@
+/* 翻译气泡框样式 */
+#translate-bubble {
+  position: fixed;
+  z-index: 2147483647;
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(0, 0, 0, 0.05);
+  padding: 12px 14px;
+  min-width: 340px;
+  max-width: 480px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  color: #333;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(5px);
+  transition: opacity 0.2s ease, transform 0.2s ease, visibility 0.2s;
+  pointer-events: none;
+}
+
+#translate-bubble.show {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+/* 头部 */
+.bubble-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.bubble-lang {
+  font-size: 11px;
+  color: #666;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.bubble-close {
+  background: none;
+  border: none;
+  font-size: 18px;
+  color: #999;
+  cursor: pointer;
+  padding: 0;
+  line-height: 1;
+  transition: color 0.15s;
+}
+
+.bubble-close:hover {
+  color: #333;
+}
+
+/* 左右布局容器 */
+.bubble-content {
+  display: flex;
+  gap: 10px;
+}
+
+/* 左右栏 */
+.bubble-column {
+  flex: 1;
+  min-width: 0;
+}
+
+.bubble-col-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+.bubble-col-label {
+  font-size: 10px;
+  color: #999;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* 栏内播放按钮 */
+.bubble-tts {
+  background: none;
+  border: none;
+  color: #999;
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.15s, background-color 0.15s;
+}
+
+.bubble-tts:hover {
+  color: #4a90d9;
+  background: #f0f5ff;
+}
+
+.bubble-tts:active {
+  transform: scale(0.95);
+}
+
+/* 原文栏 */
+.bubble-original {
+  font-size: 13px;
+  color: #666;
+  word-break: break-word;
+}
+
+/* 分隔线 - 垂直 */
+.bubble-divider {
+  width: 1px;
+  background: #eee;
+  align-self: stretch;
+  min-height: 40px;
+}
+
+/* 译文栏 */
+.bubble-result {
+  font-size: 14px;
+  color: #1a1a1a;
+  font-weight: 500;
+  word-break: break-word;
+  min-height: 20px;
+}
+
+/* 操作按钮区 */
+.bubble-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.bubble-actions button {
+  flex: 1;
+  padding: 6px 12px;
+  border: 1px solid #e5e5e5;
+  border-radius: 6px;
+  background: #fafafa;
+  cursor: pointer;
+  font-size: 13px;
+  transition: all 0.15s;
+}
+
+.bubble-actions button:hover {
+  background: #f0f0f0;
+  border-color: #d0d0d0;
+}
+
+.bubble-actions button:active {
+  background: #e8e8e8;
+  transform: scale(0.98);
+}
+
+/* 加载状态 */
+.bubble-loading {
+  display: none;
+  margin-top: 8px;
+  text-align: center;
+}
+
+.bubble-loading.show {
+  display: block;
+}
+
+.bubble-loading-text {
+  font-size: 12px;
+  color: #999;
+}
+
+/* 加载动画 */
+.bubble-loading.show::before {
+  content: '';
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border: 2px solid #e5e5e5;
+  border-top-color: #4a90d9;
+  border-radius: 50%;
+  animation: bubble-spin 0.8s linear infinite;
+  margin-right: 6px;
+  vertical-align: middle;
+}
+
+@keyframes bubble-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* 错误状态 */
+.bubble-error {
+  display: none;
+  margin-top: 6px;
+  font-size: 12px;
+  color: #e53935;
+}
+
+#translate-bubble.error .bubble-error {
+  display: block;
+}
+
+/* 暗色模式支持 */
+@media (prefers-color-scheme: dark) {
+  #translate-bubble {
+    background: #2d2d2d;
+    color: #e0e0e0;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.1);
+  }
+
+  .bubble-lang, .bubble-col-label {
+    color: #888;
+  }
+
+  .bubble-original {
+    color: #aaa;
+  }
+
+  .bubble-result {
+    color: #f0f0f0;
+  }
+
+  .bubble-divider {
+    background: #444;
+  }
+
+  .bubble-tts:hover {
+    color: #6ba3eb;
+    background: #1e2a3a;
+  }
+
+  .bubble-actions button {
+    background: #3d3d3d;
+    border-color: #555;
+    color: #ddd;
+  }
+
+  .bubble-actions button:hover {
+    background: #4a4a4a;
+    border-color: #666;
+  }
+
+  .bubble-loading-text {
+    color: #888;
+  }
+
+  .bubble-loading.show::before {
+    border-color: #555;
+    border-top-color: #4a90d9;
+  }
+}

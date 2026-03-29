@@ -1,0 +1,132 @@
+{
+  "version": "1.0.0",
+  "lastScanned": 1774788097124,
+  "projectRoot": "/Users/zhangxixi/ai-workspace/projects/chrome-translate-plugin",
+  "techStack": {
+    "languages": [
+      {
+        "name": "JavaScript/TypeScript",
+        "version": null,
+        "confidence": "high",
+        "markers": [
+          "package.json"
+        ]
+      }
+    ],
+    "frameworks": [],
+    "packageManager": "npm",
+    "runtime": null
+  },
+  "build": {
+    "buildCommand": null,
+    "testCommand": "npm test",
+    "lintCommand": null,
+    "devCommand": null,
+    "scripts": {
+      "test": "echo \"Error: no test specified\" && exit 1"
+    }
+  },
+  "conventions": {
+    "namingStyle": null,
+    "importStyle": null,
+    "testPattern": null,
+    "fileOrganization": null
+  },
+  "structure": {
+    "isMonorepo": false,
+    "workspaces": [],
+    "mainDirectories": [],
+    "gitBranches": null
+  },
+  "customNotes": [],
+  "directoryMap": {
+    "icons": {
+      "path": "icons",
+      "purpose": null,
+      "fileCount": 6,
+      "lastAccessed": 1774788097108,
+      "keyFiles": [
+        "icon128.png",
+        "icon128.svg",
+        "icon16.png",
+        "icon16.svg",
+        "icon48.png"
+      ]
+    }
+  },
+  "hotPaths": [
+    {
+      "path": "content.js",
+      "accessCount": 48,
+      "lastAccessed": 1774801026954,
+      "type": "file"
+    },
+    {
+      "path": "styles.css",
+      "accessCount": 7,
+      "lastAccessed": 1774801005642,
+      "type": "file"
+    },
+    {
+      "path": "test/bubble.test.js",
+      "accessCount": 6,
+      "lastAccessed": 1774796068254,
+      "type": "file"
+    },
+    {
+      "path": "content.debug.js",
+      "accessCount": 4,
+      "lastAccessed": 1774798075677,
+      "type": "file"
+    },
+    {
+      "path": "background.js",
+      "accessCount": 3,
+      "lastAccessed": 1774796366389,
+      "type": "file"
+    },
+    {
+      "path": "manifest.json",
+      "accessCount": 3,
+      "lastAccessed": 1774799070462,
+      "type": "file"
+    },
+    {
+      "path": "",
+      "accessCount": 2,
+      "lastAccessed": 1774795461655,
+      "type": "directory"
+    },
+    {
+      "path": "package.json",
+      "accessCount": 2,
+      "lastAccessed": 1774795468512,
+      "type": "file"
+    },
+    {
+      "path": "jest.config.js",
+      "accessCount": 2,
+      "lastAccessed": 1774795952537,
+      "type": "file"
+    },
+    {
+      "path": "test/setup.js",
+      "accessCount": 1,
+      "lastAccessed": 1774795475725,
+      "type": "file"
+    },
+    {
+      "path": "test/language.test.js",
+      "accessCount": 1,
+      "lastAccessed": 1774795491659,
+      "type": "file"
+    },
+    {
+      "path": "test/translate.test.js",
+      "accessCount": 1,
+      "lastAccessed": 1774795529244,
+      "type": "file"
+    }
+  ],
+  "userDirectives": []
+}
