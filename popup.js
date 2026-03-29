@@ -35,8 +35,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const data = await response.json();
 
     if (data.responseStatus === 200) {
+      let text = data.responseData.translatedText;
+      // 如果是英文译文，规范化大小写（首字母大写，其余小写）
+      if (to === 'en') {
+        text = text.charAt(0).toUpperCase() + text.slice(1).toLowerCase();
+      }
       return {
-        text: data.responseData.translatedText,
+        text: text,
         from: from,
         to: to
       };

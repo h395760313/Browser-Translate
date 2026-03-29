@@ -57,8 +57,8 @@
   "hotPaths": [
     {
       "path": "content.js",
-      "accessCount": 49,
-      "lastAccessed": 1774802175853,
+      "accessCount": 51,
+      "lastAccessed": 1774802271409,
       "type": "file"
     },
     {
@@ -119,6 +119,12 @@
       "path": "CLAUDE.md",
       "accessCount": 2,
       "lastAccessed": 1774801781831,
+      "type": "file"
+    },
+    {
+      "path": "popup.js",
+      "accessCount": 2,
+      "lastAccessed": 1774802280627,
       "type": "file"
     },
     {

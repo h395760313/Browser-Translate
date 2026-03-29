@@ -140,7 +140,12 @@ async function translateSingle(text, fromLang, toLang) {
     const data = await response.json();
 
     if (data.responseStatus === 200) {
-      return data.responseData.translatedText;
+      let text = data.responseData.translatedText;
+      // 如果是英文译文，规范化大小写（首字母大写，其余小写）
+      if (toLang === 'en') {
+        text = text.charAt(0).toUpperCase() + text.slice(1).toLowerCase();
+      }
+      return text;
     } else {
       throw new Error(data.responseDetails || '翻译失败');
     }
