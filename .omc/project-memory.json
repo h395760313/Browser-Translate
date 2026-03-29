@@ -57,8 +57,8 @@
   "hotPaths": [
     {
       "path": "content.js",
-      "accessCount": 48,
-      "lastAccessed": 1774801026954,
+      "accessCount": 49,
+      "lastAccessed": 1774802175853,
       "type": "file"
     },
     {
@@ -98,6 +98,12 @@
       "type": "file"
     },
     {
+      "path": "README.md",
+      "accessCount": 3,
+      "lastAccessed": 1774802182160,
+      "type": "file"
+    },
+    {
       "path": "",
       "accessCount": 2,
       "lastAccessed": 1774795461655,
@@ -107,12 +113,6 @@
       "path": "jest.config.js",
       "accessCount": 2,
       "lastAccessed": 1774795952537,
-      "type": "file"
-    },
-    {
-      "path": "README.md",
-      "accessCount": 2,
-      "lastAccessed": 1774801781523,
       "type": "file"
     },
     {
