@@ -80,15 +80,21 @@
       "type": "file"
     },
     {
+      "path": "manifest.json",
+      "accessCount": 4,
+      "lastAccessed": 1774801750838,
+      "type": "file"
+    },
+    {
       "path": "background.js",
       "accessCount": 3,
       "lastAccessed": 1774796366389,
       "type": "file"
     },
     {
-      "path": "manifest.json",
+      "path": "package.json",
       "accessCount": 3,
-      "lastAccessed": 1774799070462,
+      "lastAccessed": 1774801756882,
       "type": "file"
     },
     {
@@ -98,15 +104,21 @@
       "type": "directory"
     },
     {
-      "path": "package.json",
-      "accessCount": 2,
-      "lastAccessed": 1774795468512,
-      "type": "file"
-    },
-    {
       "path": "jest.config.js",
       "accessCount": 2,
       "lastAccessed": 1774795952537,
+      "type": "file"
+    },
+    {
+      "path": "README.md",
+      "accessCount": 2,
+      "lastAccessed": 1774801781523,
+      "type": "file"
+    },
+    {
+      "path": "CLAUDE.md",
+      "accessCount": 2,
+      "lastAccessed": 1774801781831,
       "type": "file"
     },
     {

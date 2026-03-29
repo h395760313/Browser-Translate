@@ -1,4 +1,4 @@
-# 智能翻译助手 - Chrome 扩展
+# Browser Translate - Chrome 扩展
 
 一个基于 Manifest V3 的 Chrome 翻译插件，支持选中文本自动翻译、TTS 朗读等功能。
 
@@ -34,20 +34,43 @@
 ## 项目结构
 
 ```
-chrome-translate-plugin/
-├── manifest.json      # 扩展配置文件
-├── background.js      # 后台脚本
+Browser-Translate/
+├── manifest.json      # 扩展配置文件（Manifest V3）
+├── background.js      # 后台服务脚本
 ├── content.js         # 内容脚本（页面交互）
 ├── styles.css         # 翻译气泡样式
 ├── popup.html         # 弹出页面
 ├── popup.js           # 弹出页面逻辑
-└── icons/             # 图标文件
+├── icons/             # 图标文件（16/48/128）
+├── test/              # 单元测试
+│   ├── setup.js       # 测试环境配置
+│   ├── bubble.test.js # 气泡相关测试
+│   ├── language.test.js
+│   └── translate.test.js
+├── jest.config.js     # Jest 配置
+└── package.json      # 项目依赖
+```
+
+## 开发命令
+
+```bash
+# 安装依赖
+npm install
+
+# 运行测试
+npm test
+
+# 语法检查
+node --check background.js
+node --check content.js
+node --check popup.js
 ```
 
 ## 技术栈
 
 - Manifest V3
 - 原生 JavaScript
+- Jest（单元测试）
 - MyMemory Translation API（免费翻译接口）
 
 ## API 说明

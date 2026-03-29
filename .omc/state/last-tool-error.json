@@ -1,7 +1,7 @@
 {
   "tool_name": "Bash",
-  "tool_input_preview": "{\"command\":\"gh repo create Browser-Translate --public --source=. --push 2>&1\",\"timeout\":60000}",
-  "error": "Exit code 1\n`--push` enabled but no commits found in /Users/zhangxixi/ai-workspace/projects/Browser-Translate",
-  "timestamp": "2026-03-29T16:26:43.545Z",
-  "retry_count": 1
+  "tool_input_preview": "{\"command\":\"git config credential.helper \\\"cache --timeout=86400\\\" && git push https://github.com/h395760313/Browser-Translate.git HEAD:main 2>&1\",\"timeout\":60000}",
+  "error": "Exit code 128\nfatal: could not read Username for 'https://github.com': Device not configured",
+  "timestamp": "2026-03-29T16:27:11.974Z",
+  "retry_count": 6
 }
