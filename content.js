@@ -128,13 +128,16 @@ async function translateText(text, fromLang, toLang) {
 
   // 通过 background script 翻译
   return new Promise((resolve, reject) => {
+    console.log('发送翻译请求:', { text: truncatedText, from: fromLang, to: toLang });
     chrome.runtime.sendMessage({
       type: 'translate',
       text: truncatedText,
       from: fromLang,
       to: toLang
     }, (response) => {
+      console.log('收到响应:', response);
       if (chrome.runtime.lastError) {
+        console.error('runtime.lastError:', chrome.runtime.lastError.message);
         reject(new Error(chrome.runtime.lastError.message));
         return;
       }
@@ -153,14 +156,6 @@ async function translateText(text, fromLang, toLang) {
     translationCache.set(cacheKey, result);
     return result;
   });
-}
-
-  for (const chunk of chunks) {
-    const translated = await translateSingle(chunk, fromLang, toLang);
-    translatedChunks.push(translated);
-  }
-
-  return translatedChunks.join('');
 }
 
 // 将文本分chunk，确保在句子/段落边界分割
