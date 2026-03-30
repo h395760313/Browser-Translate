@@ -1,5 +1,5 @@
 // Popup 页面脚本
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
   const inputText = document.getElementById('input-text');
   const fromLang = document.getElementById('from-lang');
   const toLang = document.getElementById('to-lang');
@@ -10,6 +10,108 @@ document.addEventListener('DOMContentLoaded', () => {
   const resultText = document.getElementById('result-text');
   const btnTts = document.getElementById('btn-tts');
   const btnCopy = document.getElementById('btn-copy');
+  const screenshotBtn = document.getElementById('screenshot-btn');
+  const autoTranslateToggle = document.getElementById('auto-translate-toggle');
+  const screenshotShortcut = document.getElementById('screenshot-shortcut');
+  const shortcutError = document.getElementById('shortcut-error');
+
+  // 读取设置
+  const settings = await chrome.storage.sync.get({
+    autoTranslate: true,
+    screenshotShortcut: 'Ctrl+Shift+X'
+  });
+
+  // 初始化开关状态
+  if (settings.autoTranslate) {
+    autoTranslateToggle.classList.add('active');
+  }
+  screenshotShortcut.value = settings.screenshotShortcut;
+
+  // 自动翻译开关
+  autoTranslateToggle.addEventListener('click', async () => {
+    const isActive = autoTranslateToggle.classList.toggle('active');
+    await chrome.storage.sync.set({ autoTranslate: isActive });
+    // 通知 content script 设置变更
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+      if (tabs[0]) {
+        chrome.tabs.sendMessage(tabs[0].id, {
+          type: 'settingsChanged',
+          autoTranslate: isActive
+        });
+      }
+    });
+  });
+
+  // 快捷键设置
+  screenshotShortcut.addEventListener('click', async () => {
+    screenshotShortcut.placeholder = '按下快捷键...';
+    screenshotShortcut.value = '';
+    shortcutError.classList.remove('show');
+
+    const onKeyDown = async (e) => {
+      e.preventDefault();
+      const keys = [];
+      if (e.ctrlKey) keys.push('Ctrl');
+      if (e.shiftKey) keys.push('Shift');
+      if (e.altKey) keys.push('Alt');
+
+      const key = e.key.toUpperCase();
+      if (!['CONTROL', 'SHIFT', 'ALT', 'META'].includes(key)) {
+        keys.push(key);
+
+        // 检查快捷键是否被占用
+        try {
+          const commands = await chrome.commands.getAll();
+          const existingCmd = commands.find(cmd =>
+            cmd.shortcut && cmd.shortcut.includes(key) &&
+            cmd.shortcut.includes('Ctrl') === e.ctrlKey &&
+            cmd.shortcut.includes('Shift') === e.shiftKey &&
+            cmd.shortcut.includes('Alt') === e.altKey
+          );
+
+          if (existingCmd) {
+            shortcutError.textContent = `快捷键已被 "${existingCmd.name || '其他命令'}" 占用`;
+            shortcutError.classList.add('show');
+            screenshotShortcut.value = settings.screenshotShortcut;
+          } else {
+            const shortcutStr = keys.join('+');
+            screenshotShortcut.value = shortcutStr;
+            await chrome.storage.sync.set({ screenshotShortcut: shortcutStr });
+            shortcutError.classList.remove('show');
+          }
+        } catch (err) {
+          // 如果 commands API 出错，直接保存
+          const shortcutStr = keys.join('+');
+          screenshotShortcut.value = shortcutStr;
+          await chrome.storage.sync.set({ screenshotShortcut: shortcutStr });
+        }
+
+        screenshotShortcut.placeholder = 'Ctrl+Shift+X';
+        document.removeEventListener('keydown', onKeyDown);
+      }
+    };
+
+    document.addEventListener('keydown', onKeyDown);
+
+    // 3秒超时
+    setTimeout(() => {
+      document.removeEventListener('keydown', onKeyDown);
+      if (!screenshotShortcut.value) {
+        screenshotShortcut.value = settings.screenshotShortcut;
+        screenshotShortcut.placeholder = 'Ctrl+Shift+X';
+      }
+    }, 3000);
+  });
+
+  // 截图按钮
+  screenshotBtn.addEventListener('click', () => {
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+      if (tabs[0]) {
+        chrome.tabs.sendMessage(tabs[0].id, { type: 'startScreenshot' });
+        window.close();
+      }
+    });
+  });
 
   // 语言检测
   function detectLanguage(text) {
@@ -19,12 +121,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // 翻译
   async function translate(text, from, to) {
-    // 如果选择自动检测，先检测语言
     if (from === 'auto') {
       from = detectLanguage(text);
     }
 
-    // 如果源语言和目标语言相同，交换
     if (from === to) {
       to = from === 'zh' ? 'en' : 'zh';
     }
@@ -36,15 +136,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (data.responseStatus === 200) {
       let text = data.responseData.translatedText;
-      // 如果是英文译文，规范化大小写（首字母大写，其余小写）
       if (to === 'en') {
         text = text.charAt(0).toUpperCase() + text.slice(1).toLowerCase();
       }
-      return {
-        text: text,
-        from: from,
-        to: to
-      };
+      return { text, from, to };
     } else {
       throw new Error(data.responseDetails || '翻译失败');
     }
@@ -77,8 +172,6 @@ document.addEventListener('DOMContentLoaded', () => {
       const result = await translate(text, fromLang.value, toLang.value);
       resultText.textContent = result.text;
       resultSection.style.display = 'block';
-
-      // 保存当前翻译的语言对用于TTS
       resultSection.dataset.lang = result.to;
     } catch (error) {
       showError('翻译失败，请检查网络连接');
@@ -132,6 +225,5 @@ document.addEventListener('DOMContentLoaded', () => {
     errorMsg.classList.remove('show');
   }
 
-  // 自动聚焦输入框
   inputText.focus();
 });

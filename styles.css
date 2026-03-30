@@ -57,6 +57,26 @@
   color: #333;
 }
 
+.bubble-header-actions {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+
+.bubble-screenshot {
+  background: none;
+  border: none;
+  font-size: 14px;
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 4px;
+  transition: background-color 0.15s;
+}
+
+.bubble-screenshot:hover {
+  background: #f0f5ff;
+}
+
 /* 左右布局容器 */
 .bubble-content {
   display: flex;
@@ -251,4 +271,50 @@
     border-color: #555;
     border-top-color: #4a90d9;
   }
+}
+
+/* 截图选区遮罩 */
+#screenshot-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 2147483646;
+  cursor: crosshair;
+  background: rgba(0, 0, 0, 0.3);
+}
+
+#screenshot-overlay .selection-box {
+  position: absolute;
+  border: 2px solid #4a90d9;
+  background: transparent;
+  box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.3);
+}
+
+#screenshot-overlay .screenshot-hint {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.75);
+  color: white;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  pointer-events: none;
+}
+
+#screenshot-overlay .screenshot-loading {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(0, 0, 0, 0.75);
+  color: white;
+  padding: 12px 20px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }

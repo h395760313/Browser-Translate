@@ -6,10 +6,21 @@
   "permissions": [
     "storage",
     "activeTab",
-    "scripting"
+    "scripting",
+    "tabCapture"
   ],
+  "commands": {
+    "screenshot": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+X",
+        "mac": "Command+Shift+X"
+      },
+      "description": "截图翻译"
+    }
+  },
   "host_permissions": [
-    "https://api.mymemory.translated.net/*"
+    "https://api.mymemory.translated.net/*",
+    "https://api.ocr.space/*"
   ],
   "action": {
     "default_popup": "popup.html",

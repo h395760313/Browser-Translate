@@ -246,8 +246,40 @@ let currentSelection = '';
 let currentFromLang = '';
 let currentToLang = '';
 
+// 自动翻译设置
+let autoTranslateEnabled = true;
+
+// 初始化：读取设置
+async function initSettings() {
+  try {
+    const settings = await chrome.storage.sync.get({ autoTranslate: true });
+    autoTranslateEnabled = settings.autoTranslate;
+  } catch (e) {
+    console.error('读取设置失败:', e);
+  }
+}
+
+// 消息监听
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message.type === 'settingsChanged') {
+    autoTranslateEnabled = message.autoTranslate;
+  }
+  if (message.type === 'startScreenshot') {
+    startScreenshotMode();
+  }
+});
+
+// 初始化
+initSettings();
+
 // 监听文本选择事件
 document.addEventListener('mouseup', async (e) => {
+  // 如果点击在气泡内，不处理（让 click 事件处理）
+  const bubble = getBubbleDOM();
+  if (bubble && bubble.contains(e.target)) {
+    return;
+  }
+
   // 延迟获取选中文本，确保选择完成
   setTimeout(async () => {
     const selection = window.getSelection();
@@ -259,6 +291,11 @@ document.addEventListener('mouseup', async (e) => {
       if (bubble) {
         bubble.classList.remove('show');
       }
+      return;
+    }
+
+    // 如果自动翻译关闭，不显示气泡
+    if (!autoTranslateEnabled) {
       return;
     }
 
@@ -352,3 +389,231 @@ document.addEventListener('click', (e) => {
   // 点击对话框外部，关闭
   bubble.classList.remove('show');
 });
+
+// 截图翻译功能
+let isScreenshotMode = false;
+let selectionStartX = 0;
+let selectionStartY = 0;
+
+function createScreenshotOverlay() {
+  const overlay = document.createElement('div');
+  overlay.id = 'screenshot-overlay';
+  overlay.innerHTML = '<div class="selection-box" style="display:none;"></div><div class="screenshot-hint">拖动选择区域，按 ESC 取消</div>';
+  document.body.appendChild(overlay);
+  return overlay;
+}
+
+function removeScreenshotOverlay() {
+  const overlay = document.getElementById('screenshot-overlay');
+  if (overlay) {
+    overlay.remove();
+  }
+}
+
+async function captureAndCropImage(rect) {
+  return new Promise((resolve, reject) => {
+    // 通过 background script 截图
+    chrome.runtime.sendMessage({ type: 'captureTab' }, (response) => {
+      if (chrome.runtime.lastError) {
+        reject(new Error(chrome.runtime.lastError.message));
+        return;
+      }
+
+      const dataUrl = response.dataUrl;
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const scale = img.width / window.innerWidth;
+        canvas.width = rect.width * scale;
+        canvas.height = rect.height * scale;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(
+          img,
+          rect.left * scale, rect.top * scale,
+          rect.width * scale, rect.height * scale,
+          0, 0,
+          canvas.width, canvas.height
+        );
+        resolve(canvas.toDataURL('image/png').split(',')[1]);
+      };
+      img.onerror = reject;
+      img.src = dataUrl;
+    });
+  });
+}
+
+async function ocrImage(imageData) {
+  const url = 'https://api.ocr.space/parse/image';
+  const formData = new FormData();
+  formData.append('base64Image', 'data:image/png;base64,' + imageData);
+  formData.append('language', 'eng'); // 英文
+  formData.append('isOverlayRequired', 'false');
+
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'apikey': '28be42b38f88957'
+    },
+    body: formData
+  });
+
+  const data = await response.json();
+
+  if (data.ParsedResults && data.ParsedResults.length > 0) {
+    return data.ParsedResults.map(r => r.ParsedText).join('\n');
+  }
+
+  if (data.ErrorMessage) {
+    throw new Error(data.ErrorMessage);
+  }
+
+  throw new Error('OCR 识别失败');
+}
+
+function startScreenshotMode() {
+  const bubble = getBubbleDOM();
+  if (bubble) {
+    bubble.classList.remove('show');
+  }
+
+  const overlay = createScreenshotOverlay();
+  const selectionBox = overlay.querySelector('.selection-box');
+
+  let isSelecting = false;
+  let currentRect = { left: 0, top: 0, width: 0, height: 0 };
+
+  const onMouseDown = (e) => {
+    if (e.button !== 0) return;
+    isSelecting = true;
+    selectionStartX = e.clientX;
+    selectionStartY = e.clientY;
+    currentRect = { left: e.clientX, top: e.clientY, width: 0, height: 0 };
+    selectionBox.style.display = 'none';
+  };
+
+  const onMouseMove = (e) => {
+    if (!isSelecting) return;
+
+    const left = Math.min(selectionStartX, e.clientX);
+    const top = Math.min(selectionStartY, e.clientY);
+    const width = Math.abs(e.clientX - selectionStartX);
+    const height = Math.abs(e.clientY - selectionStartY);
+
+    currentRect = { left, top, width, height };
+
+    if (width > 5 && height > 5) {
+      selectionBox.style.display = 'block';
+      selectionBox.style.left = left + 'px';
+      selectionBox.style.top = top + 'px';
+      selectionBox.style.width = width + 'px';
+      selectionBox.style.height = height + 'px';
+    } else {
+      selectionBox.style.display = 'none';
+    }
+  };
+
+  const onMouseUp = async (e) => {
+    if (!isSelecting) return;
+    isSelecting = false;
+    document.removeEventListener('mousedown', onMouseDown);
+    document.removeEventListener('mousemove', onMouseMove);
+    document.removeEventListener('mouseup', onMouseUp);
+
+    if (currentRect.width < 10 || currentRect.height < 10) {
+      removeScreenshotOverlay();
+      return;
+    }
+
+    // 显示加载状态
+    const hint = overlay.querySelector('.screenshot-hint');
+    hint.textContent = '正在识别文字...';
+    hint.className = 'screenshot-loading';
+
+    try {
+      const imageData = await captureAndCropImage(currentRect);
+      const text = await ocrImage(imageData);
+
+      removeScreenshotOverlay();
+
+      // 清理 OCR 识别的文本
+      let cleanedText = text || '';
+      cleanedText = cleanedText
+        .replace(/•/g, '·')  // 替换 bullet point
+        .replace(/[\u2018\u2019]/g, "'")  // 替换特殊引号
+        .replace(/[\u201C\u201D]/g, '"')
+        .replace(/\r\n/g, '\n')  // 统一换行符
+        .trim();
+
+      const trimmedText = cleanedText;
+
+      // 显示翻译气泡（无论是否识别到文字都显示）
+      let bubble = getBubbleDOM();
+      if (!bubble) {
+        bubble = createBubble();
+      }
+
+      currentFromLang = detectLanguage(trimmedText || 'en');
+      currentToLang = currentFromLang === 'zh' ? 'en' : 'zh';
+
+      bubble.querySelector('.bubble-original').textContent = trimmedText || '（未识别到文字）';
+      bubble.querySelector('.bubble-lang').textContent =
+        `${currentFromLang === 'zh' ? '中文' : '英文'} → ${currentToLang === 'zh' ? '中文' : '英文'}`;
+      bubble.classList.remove('error');
+      bubble.querySelector('.bubble-loading').classList.remove('show');
+
+      if (!trimmedText) {
+        // 未识别到文字，显示提示后自动隐藏
+        bubble.querySelector('.bubble-result').textContent = '';
+        bubble.querySelector('.bubble-error').textContent = '未识别到文字，请重试';
+        bubble.classList.add('error');
+        showBubble(bubble, currentRect.left, currentRect.top + currentRect.height + 5);
+        setTimeout(() => {
+          const b = getBubbleDOM();
+          if (b) b.classList.remove('show');
+        }, 2000);
+        return;
+      }
+
+      bubble.querySelector('.bubble-result').textContent = '';
+      bubble.querySelector('.bubble-error').textContent = '';
+      bubble.classList.add('show');
+      bubble.querySelector('.bubble-loading').classList.add('show');
+
+      showBubble(bubble, currentRect.left, currentRect.top + currentRect.height + 5);
+
+      // 执行翻译
+      currentSelection = trimmedText;
+      try {
+        console.log('开始翻译:', { trimmedText, currentFromLang, currentToLang });
+        const result = await translateText(trimmedText, currentFromLang, currentToLang);
+        console.log('翻译结果:', result);
+        bubble.querySelector('.bubble-result').textContent = result;
+        bubble.querySelector('.bubble-loading').classList.remove('show');
+      } catch (error) {
+        console.error('翻译失败:', error);
+        bubble.querySelector('.bubble-loading').classList.remove('show');
+        bubble.querySelector('.bubble-error').textContent = '翻译失败，请重试';
+        bubble.classList.add('error');
+      }
+    } catch (error) {
+      console.error('截图识别失败:', error);
+      removeScreenshotOverlay();
+    }
+  };
+
+  const onKeyDown = (e) => {
+    if (e.key === 'Escape') {
+      isSelecting = false;
+      document.removeEventListener('mousedown', onMouseDown);
+      document.removeEventListener('mousemove', onMouseMove);
+      document.removeEventListener('mouseup', onMouseUp);
+      document.removeEventListener('keydown', onKeyDown);
+      removeScreenshotOverlay();
+    }
+  };
+
+  document.addEventListener('mousedown', onMouseDown);
+  document.addEventListener('mousemove', onMouseMove);
+  document.addEventListener('mouseup', onMouseUp);
+  document.addEventListener('keydown', onKeyDown);
+}
