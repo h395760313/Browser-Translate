@@ -9,9 +9,11 @@ const popupTemplate = `
     <div class="bubble-column bubble-original-col">
       <div class="bubble-col-header">
         <span class="bubble-col-label">原文</span>
-        <button class="bubble-tts bubble-tts-original" title="朗读原文">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
-        </button>
+        <div class="bubble-col-actions">
+          <button class="bubble-tts bubble-tts-original" title="朗读原文">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+          </button>
+        </div>
       </div>
       <div class="bubble-original"></div>
     </div>
@@ -19,15 +21,15 @@ const popupTemplate = `
     <div class="bubble-column bubble-result-col">
       <div class="bubble-col-header">
         <span class="bubble-col-label">译文</span>
-        <button class="bubble-tts bubble-tts-result" title="朗读译文">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
-        </button>
+        <div class="bubble-col-actions">
+          <button class="bubble-tts bubble-tts-result" title="朗读译文">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+          </button>
+          <button class="bubble-copy" title="复制译文">📋</button>
+        </div>
       </div>
       <div class="bubble-result"></div>
     </div>
-  </div>
-  <div class="bubble-actions">
-    <button class="bubble-copy" title="复制译文">📋</button>
   </div>
   <div class="bubble-loading">
     <span class="bubble-loading-text">翻译中...</span>
@@ -302,51 +304,51 @@ document.addEventListener('click', (e) => {
   const bubble = getBubbleDOM();
   if (!bubble) return;
 
-  // 关闭按钮
-  if (e.target.classList.contains('bubble-close')) {
-    bubble.classList.remove('show');
-    currentSelection = '';
-    return;
-  }
-
-  // 朗读原文按钮
-  if (e.target.classList.contains('bubble-tts-original') || e.target.closest('.bubble-tts-original')) {
-    const text = bubble.querySelector('.bubble-original').textContent;
-    if (text) {
-      speakText(text, currentFromLang);
+  // 点击对话框内部，不关闭
+  if (bubble.contains(e.target)) {
+    // 关闭按钮
+    if (e.target.classList.contains('bubble-close')) {
+      bubble.classList.remove('show');
+      currentSelection = '';
+      return;
     }
-    return;
-  }
 
-  // 朗读译文按钮
-  if (e.target.classList.contains('bubble-tts-result') || e.target.closest('.bubble-tts-result')) {
-    const text = bubble.querySelector('.bubble-result').textContent;
-    if (text) {
-      speakText(text, currentToLang);
+    // 朗读原文按钮
+    if (e.target.classList.contains('bubble-tts-original') || e.target.closest('.bubble-tts-original')) {
+      const text = bubble.querySelector('.bubble-original').textContent;
+      if (text) {
+        speakText(text, currentFromLang);
+      }
+      return;
     }
-    return;
-  }
 
-  // 复制译文按钮
-  if (e.target.classList.contains('bubble-copy') || e.target.closest('.bubble-copy')) {
-    const text = bubble.querySelector('.bubble-result').textContent;
-    if (text) {
-      navigator.clipboard.writeText(text).then(() => {
-        const btn = bubble.querySelector('.bubble-copy');
-        btn.textContent = '✓';
-        setTimeout(() => {
-          btn.textContent = '📋';
-        }, 1000);
-      });
+    // 朗读译文按钮
+    if (e.target.classList.contains('bubble-tts-result') || e.target.closest('.bubble-tts-result')) {
+      const text = bubble.querySelector('.bubble-result').textContent;
+      if (text) {
+        speakText(text, currentToLang);
+      }
+      return;
     }
+
+    // 复制译文按钮
+    if (e.target.classList.contains('bubble-copy') || e.target.closest('.bubble-copy')) {
+      const text = bubble.querySelector('.bubble-result').textContent;
+      if (text) {
+        navigator.clipboard.writeText(text).then(() => {
+          const btn = bubble.querySelector('.bubble-copy');
+          btn.textContent = '✓';
+          setTimeout(() => {
+            btn.textContent = '📋';
+          }, 1000);
+        });
+      }
+      return;
+    }
+
     return;
   }
-});
 
-// 点击页面其他地方隐藏气泡
-document.addEventListener('mousedown', (e) => {
-  const bubble = getBubbleDOM();
-  if (bubble && !bubble.contains(e.target)) {
-    bubble.classList.remove('show');
-  }
+  // 点击对话框外部，关闭
+  bubble.classList.remove('show');
 });

@@ -57,14 +57,14 @@
   "hotPaths": [
     {
       "path": "content.js",
-      "accessCount": 51,
-      "lastAccessed": 1774802271409,
+      "accessCount": 55,
+      "lastAccessed": 1774872627480,
       "type": "file"
     },
     {
       "path": "styles.css",
-      "accessCount": 7,
-      "lastAccessed": 1774801005642,
+      "accessCount": 12,
+      "lastAccessed": 1774872666203,
       "type": "file"
     },
     {

@@ -76,6 +76,12 @@
   margin-bottom: 4px;
 }
 
+.bubble-col-actions {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+
 .bubble-col-label {
   font-size: 10px;
   color: #999;
@@ -131,32 +137,28 @@
   min-height: 20px;
 }
 
-/* 操作按钮区 */
-.bubble-actions {
-  display: flex;
-  gap: 8px;
-  margin-top: 10px;
-}
-
-.bubble-actions button {
-  flex: 1;
-  padding: 6px 12px;
-  border: 1px solid #e5e5e5;
-  border-radius: 6px;
-  background: #fafafa;
+/* 操作按钮区 - 复制按钮样式 */
+.bubble-copy {
+  background: none;
+  border: none;
+  color: #999;
   cursor: pointer;
-  font-size: 13px;
-  transition: all 0.15s;
+  padding: 2px 4px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.15s, background-color 0.15s;
+  font-size: 11px;
 }
 
-.bubble-actions button:hover {
-  background: #f0f0f0;
-  border-color: #d0d0d0;
+.bubble-copy:hover {
+  color: #4a90d9;
+  background: #f0f5ff;
 }
 
-.bubble-actions button:active {
-  background: #e8e8e8;
-  transform: scale(0.98);
+.bubble-copy:active {
+  transform: scale(0.95);
 }
 
 /* 加载状态 */
@@ -236,15 +238,9 @@
     background: #1e2a3a;
   }
 
-  .bubble-actions button {
-    background: #3d3d3d;
-    border-color: #555;
-    color: #ddd;
-  }
-
-  .bubble-actions button:hover {
-    background: #4a4a4a;
-    border-color: #666;
+  .bubble-copy:hover {
+    color: #6ba3eb;
+    background: #1e2a3a;
   }
 
   .bubble-loading-text {
