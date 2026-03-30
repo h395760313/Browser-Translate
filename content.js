@@ -62,11 +62,23 @@ function showBubble(bubble, x, y) {
 
   // 调整位置确保在视口内
   const rect = bubble.getBoundingClientRect();
-  if (rect.right > window.innerWidth) {
-    bubble.style.left = (x - rect.width) + 'px';
+  const padding = 10;
+
+  // 右边界超限
+  if (rect.right > window.innerWidth - padding) {
+    bubble.style.left = (window.innerWidth - rect.width - padding) + 'px';
   }
-  if (rect.bottom > window.innerHeight) {
-    bubble.style.top = (y - rect.height - 10) + 'px';
+  // 左边界超限
+  if (rect.left < padding) {
+    bubble.style.left = padding + 'px';
+  }
+  // 下边界超限
+  if (rect.bottom > window.innerHeight - padding) {
+    bubble.style.top = (window.innerHeight - rect.height - padding) + 'px';
+  }
+  // 上边界超限
+  if (rect.top < padding) {
+    bubble.style.top = padding + 'px';
   }
 }
 
@@ -92,78 +104,56 @@ const translationCache = new Map();
 
 // 缓存配置
 const CACHE_MAX_SIZE = 500; // 最大缓存条目数
-const REQUEST_TIMEOUT = 5000; // 请求超时时间（毫秒）
+const REQUEST_TIMEOUT = 10000; // 请求超时时间（毫秒）
 
 // 生成缓存键
 function getCacheKey(text, fromLang, toLang) {
   return `${fromLang}|${toLang}|${text}`;
 }
 
-// 翻译函数 - 使用 MyMemory API，带缓存和超时，支持长文本分chunk翻译
-const MAX_TEXT_LENGTH = 450; // API限制500字符，留出余量
+// 翻译函数 - 通过 background script 调用百度 API
+const MAX_TRANSLATE_LENGTH = 1000; // 单次翻译最大字符数
 
 async function translateText(text, fromLang, toLang) {
-  const cacheKey = getCacheKey(text, fromLang, toLang);
+  // 截断超长文本
+  const truncatedText = text.length > MAX_TRANSLATE_LENGTH
+    ? text.substring(0, MAX_TRANSLATE_LENGTH)
+    : text;
+  const cacheKey = getCacheKey(truncatedText, fromLang, toLang);
 
   // 检查缓存
   if (translationCache.has(cacheKey)) {
     return translationCache.get(cacheKey);
   }
 
-  let result;
-  if (text.length > MAX_TEXT_LENGTH) {
-    // 长文本分chunk翻译
-    result = await translateLongText(text, fromLang, toLang);
-  } else {
-    result = await translateSingle(text, fromLang, toLang);
-  }
-
-  // 存入缓存
-  if (translationCache.size >= CACHE_MAX_SIZE) {
-    const firstKey = translationCache.keys().next().value;
-    translationCache.delete(firstKey);
-  }
-  translationCache.set(cacheKey, result);
-
-  return result;
-}
-
-// 单次翻译请求
-async function translateSingle(text, fromLang, toLang) {
-  const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=${fromLang}|${toLang}`;
-
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT);
-
-  try {
-    const response = await fetch(url, { signal: controller.signal });
-    clearTimeout(timeoutId);
-
-    const data = await response.json();
-
-    if (data.responseStatus === 200) {
-      let text = data.responseData.translatedText;
-      // 如果是英文译文，规范化大小写（首字母大写，其余小写）
-      if (toLang === 'en') {
-        text = text.charAt(0).toUpperCase() + text.slice(1).toLowerCase();
+  // 通过 background script 翻译
+  return new Promise((resolve, reject) => {
+    chrome.runtime.sendMessage({
+      type: 'translate',
+      text: truncatedText,
+      from: fromLang,
+      to: toLang
+    }, (response) => {
+      if (chrome.runtime.lastError) {
+        reject(new Error(chrome.runtime.lastError.message));
+        return;
       }
-      return text;
-    } else {
-      throw new Error(data.responseDetails || '翻译失败');
+      if (response.error) {
+        reject(new Error(response.error));
+        return;
+      }
+      resolve(response.result);
+    });
+  }).then(result => {
+    // 存入缓存
+    if (translationCache.size >= CACHE_MAX_SIZE) {
+      const firstKey = translationCache.keys().next().value;
+      translationCache.delete(firstKey);
     }
-  } catch (error) {
-    if (error.name === 'AbortError') {
-      throw new Error('翻译请求超时，请检查网络连接');
-    }
-    console.error('翻译请求失败:', error);
-    throw error;
-  }
+    translationCache.set(cacheKey, result);
+    return result;
+  });
 }
-
-// 长文本分chunk翻译
-async function translateLongText(text, fromLang, toLang) {
-  const chunks = splitTextIntoChunks(text, MAX_TEXT_LENGTH);
-  const translatedChunks = [];
 
   for (const chunk of chunks) {
     const translated = await translateSingle(chunk, fromLang, toLang);
@@ -345,6 +335,7 @@ document.addEventListener('click', (e) => {
   if (bubble.contains(e.target)) {
     // 关闭按钮
     if (e.target.classList.contains('bubble-close')) {
+      window.speechSynthesis.cancel(); // 停止朗读
       bubble.classList.remove('show');
       currentSelection = '';
       return;

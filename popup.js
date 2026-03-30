@@ -129,20 +129,25 @@ document.addEventListener('DOMContentLoaded', async () => {
       to = from === 'zh' ? 'en' : 'zh';
     }
 
-    const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=${from}|${to}`;
-
-    const response = await fetch(url);
-    const data = await response.json();
-
-    if (data.responseStatus === 200) {
-      let text = data.responseData.translatedText;
-      if (to === 'en') {
-        text = text.charAt(0).toUpperCase() + text.slice(1).toLowerCase();
-      }
-      return { text, from, to };
-    } else {
-      throw new Error(data.responseDetails || '翻译失败');
-    }
+    // 通过 background script 调用百度翻译
+    return new Promise((resolve, reject) => {
+      chrome.runtime.sendMessage({
+        type: 'translate',
+        text: text,
+        from: from,
+        to: to
+      }, (response) => {
+        if (chrome.runtime.lastError) {
+          reject(new Error(chrome.runtime.lastError.message));
+          return;
+        }
+        if (response.error) {
+          reject(new Error(response.error));
+          return;
+        }
+        resolve({ text: response.result, from: from, to: to });
+      });
+    });
   }
 
   // 朗读

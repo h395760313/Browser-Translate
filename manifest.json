@@ -19,7 +19,7 @@
     }
   },
   "host_permissions": [
-    "https://api.mymemory.translated.net/*",
+    "https://fanyi-api.baidu.com/*",
     "https://api.ocr.space/*"
   ],
   "action": {
