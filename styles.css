@@ -46,6 +46,10 @@
   letter-spacing: 0.5px;
 }
 
+.bubble-lang[style*="display: none"] {
+  display: none !important;
+}
+
 .bubble-close {
   background: none;
   border: none;
@@ -90,6 +94,36 @@
   flex-shrink: 0;
 }
 
+#translate-bubble.bubble-translate-mode .bubble-content,
+#translate-bubble.bubble-word-mode .bubble-content {
+  display: block;
+}
+
+#translate-bubble.bubble-translate-mode .bubble-original-col,
+#translate-bubble.bubble-translate-mode .bubble-divider,
+#translate-bubble.bubble-word-mode .bubble-original-col,
+#translate-bubble.bubble-word-mode .bubble-divider {
+  display: none;
+}
+
+#translate-bubble.bubble-translate-mode .bubble-result-col,
+#translate-bubble.bubble-word-mode .bubble-result-col {
+  width: 100%;
+}
+
+#translate-bubble.bubble-translate-mode .bubble-col-header,
+#translate-bubble.bubble-word-mode .bubble-col-header {
+  margin-bottom: 8px;
+}
+
+#translate-bubble.bubble-translate-mode .bubble-col-label {
+  display: none;
+}
+
+.bubble-col-label[style*="display: none"] {
+  display: none !important;
+}
+
 /* 左右栏 */
 .bubble-column {
   flex: 1;
@@ -132,8 +166,8 @@
 }
 
 .bubble-tts:hover {
-  color: #4a90d9;
-  background: #f0f5ff;
+  color: #111;
+  background: #f2f2f2;
 }
 
 .bubble-tts:active {
@@ -164,6 +198,144 @@
   min-height: 20px;
 }
 
+.bubble-result.bubble-result-word {
+  font-weight: 400;
+}
+
+.word-details-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 0;
+  background: #ffffff;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.word-details-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #e8e8e8;
+}
+
+.word-details-pronunciation {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #666;
+}
+
+.word-details-headword {
+  font-size: 18px;
+  font-weight: 500;
+  color: #1a1a1a;
+  letter-spacing: 0;
+}
+
+.word-details-pronunciation {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #666;
+}
+
+.word-details-phonetic {
+  font-size: 13px;
+  color: #666;
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+}
+
+.word-details-pronounce {
+  padding: 0;
+  min-width: 18px;
+  min-height: 18px;
+  color: #777;
+}
+
+.word-details-wordbook-toggle {
+  border: 1px solid #d8d8d8;
+  background: #fff;
+  color: #444;
+  border-radius: 999px;
+  padding: 2px 10px;
+  font-size: 11px;
+  line-height: 1.4;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s, background-color 0.15s;
+}
+
+.word-details-wordbook-toggle:hover {
+  border-color: #bcbcbc;
+  background: #f7f7f7;
+}
+
+.word-details-wordbook-toggle.is-saved {
+  border-color: #4a90d9;
+  color: #2f6fb8;
+  background: #f2f7ff;
+}
+
+.word-details-wordbook-toggle:disabled {
+  opacity: 0.65;
+  cursor: wait;
+}
+
+.word-details-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.word-details-item {
+  display: grid;
+  grid-template-columns: 34px 1fr;
+  gap: 8px;
+  align-items: start;
+  padding: 0;
+  border-bottom: none;
+}
+
+.word-details-item:last-child {
+  padding-bottom: 0;
+  border-bottom: none;
+}
+
+.word-details-tag {
+  display: inline-block;
+  color: #666;
+  font-size: 14px;
+  font-style: italic;
+  font-weight: 400;
+}
+
+.word-details-meaning {
+  color: #222;
+  line-height: 1.7;
+}
+
+#translate-bubble.bubble-translate-mode {
+  padding: 10px 12px;
+  min-width: 260px;
+  max-width: 360px;
+}
+
+#translate-bubble.bubble-translate-mode .bubble-content {
+  margin-top: 0;
+}
+
+#translate-bubble.bubble-translate-mode .bubble-result {
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 1.75;
+}
+
 /* 操作按钮区 - 复制按钮样式 */
 .bubble-copy {
   background: none;
@@ -180,8 +352,8 @@
 }
 
 .bubble-copy:hover {
-  color: #4a90d9;
-  background: #f0f5ff;
+  color: #111;
+  background: #f2f2f2;
 }
 
 .bubble-copy:active {
@@ -244,6 +416,27 @@
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.1);
   }
 
+  #translate-bubble.bubble-word-mode,
+  #translate-bubble.bubble-translate-mode {
+    background: #ffffff;
+    color: #333333;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(0, 0, 0, 0.05);
+  }
+
+  #translate-bubble.bubble-word-mode .bubble-lang,
+  #translate-bubble.bubble-word-mode .bubble-col-label,
+  #translate-bubble.bubble-word-mode .bubble-result,
+  #translate-bubble.bubble-word-mode .word-details-headword,
+  #translate-bubble.bubble-word-mode .word-details-meaning,
+  #translate-bubble.bubble-word-mode .word-details-tag,
+  #translate-bubble.bubble-word-mode .word-details-phonetic,
+  #translate-bubble.bubble-word-mode .word-details-pronunciation,
+  #translate-bubble.bubble-translate-mode .bubble-lang,
+  #translate-bubble.bubble-translate-mode .bubble-col-label,
+  #translate-bubble.bubble-translate-mode .bubble-result {
+    color: inherit;
+  }
+
   .bubble-lang, .bubble-col-label {
     color: #888;
   }
@@ -256,18 +449,55 @@
     color: #f0f0f0;
   }
 
+  .word-details-header {
+    border-bottom-color: #444;
+  }
+
+  .word-details-headword {
+    color: #f0f0f0;
+  }
+
+  .word-details-pronunciation,
+  .word-details-phonetic {
+    color: #b8b8b8;
+  }
+
+  .word-details-wordbook-toggle {
+    border-color: #cfcfcf;
+    background: #fff;
+    color: #444;
+  }
+
+  .word-details-wordbook-toggle:hover {
+    background: #f4f4f4;
+  }
+
+  .word-details-wordbook-toggle.is-saved {
+    border-color: #4a90d9;
+    color: #2f6fb8;
+    background: #f2f7ff;
+  }
+
+  .word-details-tag {
+    color: #b8b8b8;
+  }
+
+  .word-details-meaning {
+    color: #f0f0f0;
+  }
+
   .bubble-divider {
     background: #444;
   }
 
   .bubble-tts:hover {
-    color: #6ba3eb;
-    background: #1e2a3a;
+    color: #f0f0f0;
+    background: #3a3a3a;
   }
 
   .bubble-copy:hover {
-    color: #6ba3eb;
-    background: #1e2a3a;
+    color: #f0f0f0;
+    background: #3a3a3a;
   }
 
   .bubble-loading-text {

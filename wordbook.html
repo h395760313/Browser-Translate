@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>单词本</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      background: linear-gradient(180deg, #f7fbff 0%, #ffffff 100%);
+      color: #1f1f1f;
+    }
+
+    .shell {
+      width: min(100%, 920px);
+      margin: 0 auto;
+      padding: 24px;
+    }
+
+    .hero {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 18px;
+      padding: 20px 22px;
+      border: 1px solid #e6eef8;
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.92);
+      box-shadow: 0 10px 30px rgba(31, 41, 55, 0.08);
+    }
+
+    .hero h1 {
+      margin: 0 0 6px;
+      font-size: 22px;
+      line-height: 1.2;
+    }
+
+    .hero p {
+      margin: 0;
+      color: #5f6b7a;
+      font-size: 13px;
+    }
+
+    .searchbar {
+      width: min(100%, 380px);
+      display: grid;
+      gap: 8px;
+    }
+
+    .searchbar input {
+      width: 100%;
+      border: 1px solid #d9e4f1;
+      border-radius: 12px;
+      padding: 12px 14px;
+      font-size: 14px;
+      background: #fff;
+    }
+
+    .searchbar input:focus {
+      outline: none;
+      border-color: #4a90d9;
+      box-shadow: 0 0 0 3px rgba(74, 144, 217, 0.12);
+    }
+
+    .meta {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 14px;
+      color: #667085;
+      font-size: 13px;
+    }
+
+    .wordbook-list {
+      display: grid;
+      gap: 12px;
+    }
+
+    .wordbook-empty {
+      padding: 18px;
+      border: 1px dashed #d7e0ea;
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.85);
+      color: #667085;
+    }
+
+    .wordbook-item {
+      border: 1px solid #e7edf5;
+      border-radius: 16px;
+      padding: 16px 18px;
+      background: rgba(255, 255, 255, 0.96);
+      box-shadow: 0 8px 20px rgba(15, 23, 42, 0.05);
+    }
+
+    .wordbook-item-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 14px;
+    }
+
+    .wordbook-word {
+      font-size: 18px;
+      font-weight: 700;
+      line-height: 1.25;
+    }
+
+    .wordbook-phonetic {
+      display: block;
+      margin-top: 4px;
+      font-size: 12px;
+      color: #667085;
+      font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+    }
+
+    .wordbook-meanings {
+      margin-top: 10px;
+      color: #344054;
+      font-size: 14px;
+      line-height: 1.65;
+      white-space: pre-wrap;
+    }
+
+    .wordbook-remove {
+      border: 1px solid #e2e8f0;
+      background: #fff;
+      color: #475467;
+      border-radius: 999px;
+      padding: 6px 12px;
+      font-size: 12px;
+      cursor: pointer;
+      flex-shrink: 0;
+      transition: all 0.15s;
+    }
+
+    .wordbook-remove:hover {
+      border-color: #d33;
+      color: #d33;
+      background: #fff7f7;
+    }
+
+    .wordbook-remove:disabled {
+      opacity: 0.6;
+      cursor: wait;
+    }
+
+    @media (max-width: 720px) {
+      .shell {
+        padding: 16px;
+      }
+
+      .hero {
+        flex-direction: column;
+      }
+
+      .searchbar {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <div class="hero">
+      <div>
+        <h1>单词本</h1>
+        <p>查询、筛选和移除已保存的单词</p>
+      </div>
+      <div class="searchbar">
+        <input id="wordbook-search" type="search" placeholder="输入单词、音标、释义关键词">
+      </div>
+    </div>
+
+    <div class="meta">
+      <span id="wordbook-count">0 个单词</span>
+      <span id="wordbook-result-count">0 个结果</span>
+    </div>
+
+    <div class="wordbook-list" id="wordbook-list"></div>
+  </div>
+
+  <script src="wordbook.js"></script>
+  <script src="wordbook-search.js"></script>
+  <script src="wordbook-page.js"></script>
+</body>
+</html>

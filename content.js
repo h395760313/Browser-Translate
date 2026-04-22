@@ -1,19 +1,10 @@
 // 翻译气泡框的HTML模板 - 左右布局
 const popupTemplate = `
 <div id="translate-bubble">
-  <div class="bubble-header">
-    <span class="bubble-lang"></span>
-    <button class="bubble-close" title="关闭">&times;</button>
-  </div>
   <div class="bubble-content">
     <div class="bubble-column bubble-original-col">
       <div class="bubble-col-header">
         <span class="bubble-col-label">原文</span>
-        <div class="bubble-col-actions">
-          <button class="bubble-tts bubble-tts-original" title="朗读原文">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
-          </button>
-        </div>
       </div>
       <div class="bubble-original"></div>
     </div>
@@ -22,8 +13,8 @@ const popupTemplate = `
       <div class="bubble-col-header">
         <span class="bubble-col-label">译文</span>
         <div class="bubble-col-actions">
-          <button class="bubble-tts bubble-tts-result" title="朗读译文">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+          <button class="bubble-tts bubble-tts-original bubble-source-tts" title="朗读原文">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M14 3.23v17.54a1 1 0 0 1-1.64.77L7.91 18H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h3.91l4.45-3.54A1 1 0 0 1 14 3.23Zm4.72 2.64a1 1 0 0 1 1.41.08 8 8 0 0 1 0 11.1 1 1 0 1 1-1.49-1.34 6 6 0 0 0 0-8.42 1 1 0 0 1 .08-1.42Zm-2.61 2.25a1 1 0 0 1 1.42.06 4 4 0 0 1 0 5.64 1 1 0 1 1-1.48-1.34 2 2 0 0 0 0-2.96 1 1 0 0 1 .06-1.4Z"/></svg>
           </button>
           <button class="bubble-copy" title="复制译文">📋</button>
         </div>
@@ -99,6 +90,48 @@ function detectLanguage(text) {
   return 'en';
 }
 
+const translationRules = globalThis.TranslationRules || {};
+const wordDetailsApi = globalThis.WordDetails || {};
+const ttsUtils = globalThis.TTSUtils || {};
+const wordbookApi = globalThis.Wordbook || {};
+const analyzeSelection = translationRules.analyzeSelection || ((text) => {
+  const normalizedText = (text || '').trim();
+  const hasEnglish = /[A-Za-z]/.test(normalizedText);
+  const hasChinese = /[\u4e00-\u9fff]/.test(normalizedText);
+  const isSingleWord = /^[A-Za-z]+(?:['’-][A-Za-z]+)*$/.test(normalizedText);
+
+  return {
+    normalizedText,
+    hasChinese,
+    hasEnglish,
+    isSingleEnglishWord: isSingleWord,
+    mode: !hasEnglish ? 'skip' : isSingleWord ? 'single-word' : hasChinese ? 'mixed' : 'translate'
+  };
+});
+const splitMixedText = translationRules.splitMixedText || ((text) => [{ type: 'static', text: (text || '').trim() }]);
+const mergeMixedTranslation = translationRules.mergeMixedTranslation || ((segments, translatedParts) => translatedParts[0] || segments.map((segment) => segment.text).join(''));
+const formatWordMeanings = wordDetailsApi.formatWordMeanings || ((meanings) => (meanings || []).map((meaning) => `${meaning.label} ${meaning.text}`).join('\n'));
+const renderWordDetailsCard = wordDetailsApi.renderWordDetailsCard || (() => '');
+const getBubbleModeClass = wordDetailsApi.getBubbleModeClass || (() => '');
+const getBubbleLayout = wordDetailsApi.getBubbleLayout || ((isWordDetails) => ({
+  showOriginalColumn: false,
+  showDivider: false,
+  showResultTts: false,
+  showCopyButton: !isWordDetails,
+  showSourceTts: !isWordDetails,
+  showHeaderLang: false,
+  showColumnLabels: false,
+  showWordCardTts: isWordDetails
+}));
+const speakTextSequentially = ttsUtils.speakTextSequentially || (async () => false);
+const cancelSpeechPlayback = ttsUtils.cancelSpeechPlayback || (() => {
+  if ('speechSynthesis' in window) {
+    window.speechSynthesis.cancel();
+  }
+});
+const getWordbookEntry = wordbookApi.getWordbookEntry || (async () => null);
+const toggleWordbookEntry = wordbookApi.toggleWordbookEntry || (async () => ({ saved: false, entries: [] }));
+
 // 翻译缓存 - 使用 Map 存储已翻译的文本
 const translationCache = new Map();
 
@@ -158,65 +191,235 @@ async function translateText(text, fromLang, toLang) {
   });
 }
 
-// 将文本分chunk，确保在句子/段落边界分割
-function splitTextIntoChunks(text, maxLength) {
-  const chunks = [];
-  const sentences = text.match(/[^.!?。！？]+[.!?。！？]*/g) || [text];
-  let currentChunk = '';
-
-  for (const sentence of sentences) {
-    if (currentChunk.length + sentence.length <= maxLength) {
-      currentChunk += sentence;
-    } else {
-      if (currentChunk) {
-        chunks.push(currentChunk.trim());
+async function lookupWordDetails(word) {
+  return new Promise((resolve, reject) => {
+    chrome.runtime.sendMessage({
+      type: 'lookupWordDetails',
+      word
+    }, (response) => {
+      if (chrome.runtime.lastError) {
+        reject(new Error(chrome.runtime.lastError.message));
+        return;
       }
-      // 如果单个句子超过限制，按单词/字符强制分割
-      if (sentence.length > maxLength) {
-        currentChunk = sentence;
-        while (currentChunk.length > maxLength) {
-          chunks.push(currentChunk.slice(0, maxLength));
-          currentChunk = currentChunk.slice(maxLength);
-        }
-      } else {
-        currentChunk = sentence;
+
+      if (response.error) {
+        reject(new Error(response.error));
+        return;
       }
-    }
-  }
 
-  if (currentChunk.trim()) {
-    chunks.push(currentChunk.trim());
-  }
-
-  return chunks;
+      resolve(response.result);
+    });
+  });
 }
 
-// TTS朗读 - 使用更自然的语音
-function speakText(text, lang) {
-  if ('speechSynthesis' in window) {
-    window.speechSynthesis.cancel();
+function syncWordbookButtonState(bubble, isInWordbook) {
+  const button = bubble.querySelector('.word-details-wordbook-toggle');
+  if (!button) {
+    return;
+  }
 
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = lang === 'zh' ? 'zh-CN' : 'en-US';
-    utterance.rate = 0.8;           // 稍慢的语速
-    utterance.pitch = 1.0;         // 正常音调
-    utterance.volume = 1.0;        // 最大音量
+  const label = isInWordbook ? '从单词本移除' : '加入单词本';
+  button.textContent = label;
+  button.title = label;
+  button.setAttribute('aria-label', label);
+  button.classList.toggle('is-saved', Boolean(isInWordbook));
+  button.dataset.saved = isInWordbook ? 'true' : 'false';
+}
 
-    // 尝试选择更自然的语音
-    const voices = speechSynthesis.getVoices();
-    const preferredVoice = voices.find(v => {
-      if (lang === 'zh') {
-        return v.lang.includes('zh') && v.name.includes('Natural') || v.name.includes('Premium');
-      } else {
-        return v.lang.includes('en') && (v.name.includes('Natural') || v.name.includes('Premium') || v.name.includes('Google'));
+function readWordbookEntryFromBubble(bubble) {
+  const word = bubble.querySelector('.word-details-headword')?.textContent || '';
+  const phonetic = bubble.querySelector('.word-details-phonetic')?.textContent || '';
+  const meanings = Array.from(bubble.querySelectorAll('.word-details-item')).map((item) => {
+    const label = item.querySelector('.word-details-tag')?.textContent || '';
+    const text = item.querySelector('.word-details-meaning')?.textContent || '';
+    return { label, text };
+  }).filter((meaning) => meaning.label && meaning.text);
+
+  return {
+    word,
+    displayWord: word,
+    phonetic,
+    meanings,
+    originalText: word
+  };
+}
+
+async function translateMixedText(text) {
+  const segments = splitMixedText(text);
+  const englishSegments = segments
+    .filter((segment) => segment.type === 'english')
+    .map((segment) => segment.text);
+
+  if (!englishSegments.length) {
+    return text;
+  }
+
+  const translatedSegments = await Promise.all(
+    englishSegments.map((segment) => translateText(segment, 'en', 'zh'))
+  );
+
+  return mergeMixedTranslation(segments, translatedSegments);
+}
+
+function getLanguageLabel(lang) {
+  if (lang === 'zh') return '中文';
+  if (lang === 'en') return '英文';
+  if (lang === 'mixed') return '中英混合';
+  return lang;
+}
+
+function formatWordOriginalText(word, phonetic) {
+  return phonetic ? `${word} ${phonetic}` : word;
+}
+
+function setBubbleMode(bubble, isWordDetails) {
+  bubble.classList.remove('bubble-word-mode', 'bubble-translate-mode');
+
+  const modeClass = getBubbleModeClass(isWordDetails);
+  if (modeClass) {
+    bubble.classList.add(modeClass);
+  } else {
+    bubble.classList.add('bubble-translate-mode');
+  }
+}
+
+function applyBubbleLayout(bubble, isWordDetails) {
+  const layout = getBubbleLayout(isWordDetails);
+  const originalColumn = bubble.querySelector('.bubble-original-col');
+  const divider = bubble.querySelector('.bubble-divider');
+  const sourceTts = bubble.querySelector('.bubble-source-tts');
+  const copyButton = bubble.querySelector('.bubble-copy');
+  const headerLang = bubble.querySelector('.bubble-lang');
+  const columnLabels = bubble.querySelectorAll('.bubble-col-label');
+
+  if (originalColumn) {
+    originalColumn.style.display = layout.showOriginalColumn ? '' : 'none';
+  }
+
+  if (divider) {
+    divider.style.display = layout.showDivider ? '' : 'none';
+  }
+
+  if (sourceTts) {
+    sourceTts.style.display = layout.showSourceTts ? 'inline-flex' : 'none';
+  }
+
+  if (copyButton) {
+    copyButton.style.display = layout.showCopyButton ? 'inline-flex' : 'none';
+  }
+
+  if (headerLang) {
+    headerLang.style.display = layout.showHeaderLang ? '' : 'none';
+  }
+
+  columnLabels.forEach((label) => {
+    label.style.display = layout.showColumnLabels ? '' : 'none';
+  });
+}
+
+function renderBubbleResult(resultElement, displayData) {
+  resultElement.classList.toggle('bubble-result-word', Boolean(displayData.isWordDetails));
+
+  if (displayData.isWordDetails && displayData.resultHtml) {
+    resultElement.innerHTML = displayData.resultHtml;
+    return;
+  }
+
+  resultElement.textContent = displayData.resultText || '';
+}
+
+async function buildSelectionDisplay(selectedText) {
+  const analysis = analyzeSelection(selectedText);
+
+  if (analysis.mode === 'skip') {
+    return null;
+  }
+
+  if (analysis.mode === 'single-word') {
+    try {
+      const wordDetails = await lookupWordDetails(analysis.normalizedText);
+      const formattedMeanings = formatWordMeanings(wordDetails.meanings);
+      const wordbookEntry = await getWordbookEntry(analysis.normalizedText);
+
+      if (formattedMeanings) {
+        return {
+          originalText: formatWordOriginalText(analysis.normalizedText, wordDetails.phonetic),
+          resultText: formattedMeanings,
+          resultHtml: renderWordDetailsCard({
+            ...wordDetails,
+            showTts: true,
+            showWordbookToggle: true,
+            isInWordbook: Boolean(wordbookEntry)
+          }),
+          isWordDetails: true,
+          fromLang: 'en',
+          toLang: 'zh',
+          originalSpeakText: analysis.normalizedText,
+          resultSpeakText: formattedMeanings,
+          originalSpeakLang: 'en',
+          resultSpeakLang: 'zh',
+          isInWordbook: Boolean(wordbookEntry)
+        };
       }
-    });
-
-    if (preferredVoice) {
-      utterance.voice = preferredVoice;
+    } catch (error) {
+      console.warn('单词详情查询失败，回退到普通翻译:', error);
     }
+  }
 
-    window.speechSynthesis.speak(utterance);
+  if (analysis.mode === 'mixed') {
+    const translatedText = await translateMixedText(analysis.normalizedText);
+    return {
+      originalText: analysis.normalizedText,
+      resultText: translatedText,
+      resultHtml: '',
+      isWordDetails: false,
+      fromLang: 'mixed',
+      toLang: 'zh',
+      originalSpeakText: analysis.normalizedText,
+      resultSpeakText: translatedText,
+      originalSpeakLang: 'zh',
+      resultSpeakLang: 'zh',
+      isInWordbook: false
+    };
+  }
+
+  const fromLang = detectLanguage(analysis.normalizedText);
+  const toLang = fromLang === 'zh' ? 'en' : 'zh';
+  const translatedText = await translateText(analysis.normalizedText, fromLang, toLang);
+
+  return {
+    originalText: analysis.normalizedText,
+    resultText: translatedText,
+    resultHtml: '',
+    isWordDetails: false,
+    fromLang,
+    toLang,
+    originalSpeakText: analysis.normalizedText,
+    resultSpeakText: translatedText,
+    originalSpeakLang: fromLang,
+    resultSpeakLang: toLang,
+    isInWordbook: false
+  };
+}
+
+// TTS朗读 - 自动断句顺序播报
+async function speakText(text, lang) {
+  if (!('speechSynthesis' in window) || typeof SpeechSynthesisUtterance === 'undefined') {
+    return;
+  }
+
+  try {
+    await speakTextSequentially(text, lang, {
+      speechSynthesis: window.speechSynthesis,
+      UtteranceClass: SpeechSynthesisUtterance,
+      getVoices: () => window.speechSynthesis.getVoices(),
+      rate: 0.8,
+      pitch: 1.0,
+      volume: 1.0,
+      maxChunkLength: 120
+    });
+  } catch (error) {
+    console.warn('朗读失败:', error);
   }
 }
 
@@ -230,6 +433,12 @@ if ('speechSynthesis' in window) {
 let currentSelection = '';
 let currentFromLang = '';
 let currentToLang = '';
+let currentOriginalSpeakText = '';
+let currentResultSpeakText = '';
+let currentOriginalSpeakLang = '';
+let currentResultSpeakLang = '';
+let currentResultCopyText = '';
+let currentWordbookEntry = null;
 
 // 自动翻译设置
 let autoTranslateEnabled = true;
@@ -259,7 +468,7 @@ initSettings();
 
 // 监听文本选择事件
 document.addEventListener('mouseup', async (e) => {
-  // 如果点击在气泡内，不处理（让 click 事件处理）
+    // 如果点击在气泡内，不处理（让 click 事件处理）
   const bubble = getBubbleDOM();
   if (bubble && bubble.contains(e.target)) {
     return;
@@ -269,12 +478,23 @@ document.addEventListener('mouseup', async (e) => {
   setTimeout(async () => {
     const selection = window.getSelection();
     const selectedText = selection.toString().trim();
+    const selectionAnalysis = analyzeSelection(selectedText);
 
     // 如果没有选中文本或选中内容太少，隐藏气泡
     if (!selectedText || selectedText.length < 2) {
       const bubble = getBubbleDOM();
       if (bubble) {
+        cancelSpeechPlayback(window.speechSynthesis);
         bubble.classList.remove('show');
+      }
+      return;
+    }
+
+    if (selectionAnalysis.mode === 'skip') {
+      const existingBubble = getBubbleDOM();
+      if (existingBubble) {
+        cancelSpeechPlayback(window.speechSynthesis);
+        existingBubble.classList.remove('show');
       }
       return;
     }
@@ -285,8 +505,18 @@ document.addEventListener('mouseup', async (e) => {
     }
 
     currentSelection = selectedText;
-    currentFromLang = detectLanguage(selectedText);
-    currentToLang = currentFromLang === 'zh' ? 'en' : 'zh';
+    currentFromLang = selectionAnalysis.mode === 'mixed'
+      ? 'mixed'
+      : detectLanguage(selectedText);
+    currentToLang = selectionAnalysis.mode === 'mixed'
+      ? 'zh'
+      : currentFromLang === 'zh' ? 'en' : 'zh';
+    currentOriginalSpeakText = selectedText;
+    currentResultSpeakText = '';
+    currentOriginalSpeakLang = currentFromLang === 'mixed' ? 'zh' : currentFromLang;
+    currentResultSpeakLang = currentToLang;
+    currentResultCopyText = '';
+    currentWordbookEntry = null;
 
     // 创建或获取气泡
     let bubble = getBubbleDOM();
@@ -301,8 +531,10 @@ document.addEventListener('mouseup', async (e) => {
 
     bubble.querySelector('.bubble-original').textContent = selectedText;
     bubble.querySelector('.bubble-result').textContent = '';
-    bubble.querySelector('.bubble-lang').textContent =
-      `${currentFromLang === 'zh' ? '中文' : '英文'} → ${currentToLang === 'zh' ? '中文' : '英文'}`;
+    bubble.querySelector('.bubble-result').classList.remove('bubble-result-word');
+    setBubbleMode(bubble, false);
+    applyBubbleLayout(bubble, false);
+    bubble.querySelector('.bubble-error').textContent = '';
     bubble.classList.remove('show', 'error');
     bubble.querySelector('.bubble-loading').classList.add('show');
 
@@ -310,8 +542,28 @@ document.addEventListener('mouseup', async (e) => {
 
     // 执行翻译
     try {
-      const result = await translateText(selectedText, currentFromLang, currentToLang);
-      bubble.querySelector('.bubble-result').textContent = result;
+      const displayData = await buildSelectionDisplay(selectedText);
+      if (!displayData) {
+        bubble.classList.remove('show');
+        return;
+      }
+
+      currentFromLang = displayData.fromLang;
+      currentToLang = displayData.toLang;
+      currentOriginalSpeakText = displayData.originalSpeakText;
+      currentResultSpeakText = displayData.resultSpeakText;
+      currentOriginalSpeakLang = displayData.originalSpeakLang;
+      currentResultSpeakLang = displayData.resultSpeakLang;
+      currentResultCopyText = displayData.resultText;
+      currentWordbookEntry = displayData.isWordDetails ? readWordbookEntryFromBubble(bubble) : null;
+
+      bubble.querySelector('.bubble-original').textContent = displayData.originalText;
+      setBubbleMode(bubble, displayData.isWordDetails);
+      applyBubbleLayout(bubble, displayData.isWordDetails);
+      renderBubbleResult(bubble.querySelector('.bubble-result'), displayData);
+      if (displayData.isWordDetails) {
+        syncWordbookButtonState(bubble, displayData.isInWordbook);
+      }
       bubble.querySelector('.bubble-loading').classList.remove('show');
     } catch (error) {
       bubble.querySelector('.bubble-loading').classList.remove('show');
@@ -338,25 +590,16 @@ document.addEventListener('click', (e) => {
 
     // 朗读原文按钮
     if (e.target.classList.contains('bubble-tts-original') || e.target.closest('.bubble-tts-original')) {
-      const text = bubble.querySelector('.bubble-original').textContent;
+      const text = currentOriginalSpeakText || bubble.querySelector('.bubble-original').textContent;
       if (text) {
-        speakText(text, currentFromLang);
-      }
-      return;
-    }
-
-    // 朗读译文按钮
-    if (e.target.classList.contains('bubble-tts-result') || e.target.closest('.bubble-tts-result')) {
-      const text = bubble.querySelector('.bubble-result').textContent;
-      if (text) {
-        speakText(text, currentToLang);
+        speakText(text, currentOriginalSpeakLang || currentFromLang);
       }
       return;
     }
 
     // 复制译文按钮
     if (e.target.classList.contains('bubble-copy') || e.target.closest('.bubble-copy')) {
-      const text = bubble.querySelector('.bubble-result').textContent;
+      const text = currentResultCopyText || bubble.querySelector('.bubble-result').textContent;
       if (text) {
         navigator.clipboard.writeText(text).then(() => {
           const btn = bubble.querySelector('.bubble-copy');
@@ -369,10 +612,33 @@ document.addEventListener('click', (e) => {
       return;
     }
 
+    // 单词本按钮
+    if (e.target.classList.contains('word-details-wordbook-toggle') || e.target.closest('.word-details-wordbook-toggle')) {
+      const button = e.target.closest('.word-details-wordbook-toggle');
+      if (!button) {
+        return;
+      }
+
+      button.disabled = true;
+      const entry = currentWordbookEntry || readWordbookEntryFromBubble(bubble);
+      toggleWordbookEntry(entry)
+        .then((result) => {
+          syncWordbookButtonState(bubble, Boolean(result && result.saved));
+        })
+        .catch((error) => {
+          console.error('更新单词本失败:', error);
+        })
+        .finally(() => {
+          button.disabled = false;
+        });
+      return;
+    }
+
     return;
   }
 
   // 点击对话框外部，关闭
+  cancelSpeechPlayback(window.speechSynthesis);
   bubble.classList.remove('show');
 });
 
@@ -542,8 +808,9 @@ function startScreenshotMode() {
       currentToLang = currentFromLang === 'zh' ? 'en' : 'zh';
 
       bubble.querySelector('.bubble-original').textContent = trimmedText || '（未识别到文字）';
-      bubble.querySelector('.bubble-lang').textContent =
-        `${currentFromLang === 'zh' ? '中文' : '英文'} → ${currentToLang === 'zh' ? '中文' : '英文'}`;
+      bubble.querySelector('.bubble-result').classList.remove('bubble-result-word');
+      setBubbleMode(bubble, false);
+      applyBubbleLayout(bubble, false);
       bubble.classList.remove('error');
       bubble.querySelector('.bubble-loading').classList.remove('show');
 
@@ -569,11 +836,13 @@ function startScreenshotMode() {
 
       // 执行翻译
       currentSelection = trimmedText;
+      currentResultCopyText = '';
       try {
         console.log('开始翻译:', { trimmedText, currentFromLang, currentToLang });
         const result = await translateText(trimmedText, currentFromLang, currentToLang);
         console.log('翻译结果:', result);
         bubble.querySelector('.bubble-result').textContent = result;
+        currentResultCopyText = result;
         bubble.querySelector('.bubble-loading').classList.remove('show');
       } catch (error) {
         console.error('翻译失败:', error);

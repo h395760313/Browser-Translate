@@ -1,8 +1,14 @@
 // Background Service Worker - 处理快捷键、截图和翻译请求
+importScripts('word-details.js');
 
 // 百度翻译配置
 const BAIDU_APP_ID = '20260329002582740';
 const BAIDU_APP_KEY = 'ZxCWWlvGiSUiAW8M9fnl';
+const DICTIONARY_API_BASE = 'https://api.dictionaryapi.dev/api/v2/entries/en/';
+const wordDetailsApi = globalThis.WordDetails || {};
+const extractMeaningSummaries = wordDetailsApi.extractMeaningSummaries || (() => []);
+const buildPartOfSpeechPrompt = wordDetailsApi.buildPartOfSpeechPrompt || ((word) => word);
+const normalizeGlossTranslation = wordDetailsApi.normalizeGlossTranslation || ((partOfSpeech, text) => text);
 
 // 纯 JavaScript MD5 实现
 const md5 = (function() {
@@ -192,6 +198,80 @@ async function baiduTranslate(text, from, to) {
   return data.trans_result.map(item => item.dst).join('\n');
 }
 
+const WORD_DETAILS_CACHE = new Map();
+
+function pickWordPhonetic(entries) {
+  for (const entry of entries) {
+    if (entry.phonetic) {
+      return entry.phonetic;
+    }
+
+    if (Array.isArray(entry.phonetics)) {
+      for (const phonetic of entry.phonetics) {
+        if (phonetic && phonetic.text) {
+          return phonetic.text;
+        }
+      }
+    }
+  }
+
+  return '';
+}
+
+async function lookupEnglishWordDetails(word) {
+  const normalizedWord = (word || '').trim().toLowerCase();
+
+  if (!normalizedWord) {
+    return { word: '', phonetic: '', meanings: [] };
+  }
+
+  if (WORD_DETAILS_CACHE.has(normalizedWord)) {
+    return WORD_DETAILS_CACHE.get(normalizedWord);
+  }
+
+  const response = await fetch(DICTIONARY_API_BASE + encodeURIComponent(normalizedWord));
+  if (!response.ok) {
+    throw new Error('单词详情查询失败');
+  }
+
+  const entries = await response.json();
+  if (!Array.isArray(entries) || !entries.length) {
+    return { word: normalizedWord, phonetic: '', meanings: [] };
+  }
+
+  const phonetic = pickWordPhonetic(entries);
+  const meaningSummaries = extractMeaningSummaries(entries);
+  const translatedMeanings = await Promise.allSettled(
+    meaningSummaries.map(async (meaning) => {
+      const prompt = buildPartOfSpeechPrompt(normalizedWord, meaning.partOfSpeech);
+      const promptTranslation = await baiduTranslate(prompt, 'en', 'zh');
+      const normalizedPromptTranslation = normalizeGlossTranslation(meaning.partOfSpeech, promptTranslation);
+
+      if (normalizedPromptTranslation && !/[A-Za-z]{2,}/.test(normalizedPromptTranslation)) {
+        return normalizedPromptTranslation;
+      }
+
+      const fallbackTranslation = await baiduTranslate(meaning.summary, 'en', 'zh');
+      return normalizeGlossTranslation(meaning.partOfSpeech, fallbackTranslation);
+    })
+  );
+
+  const result = {
+    word: normalizedWord,
+    phonetic,
+    meanings: meaningSummaries.map((meaning, index) => ({
+      partOfSpeech: meaning.partOfSpeech,
+      label: meaning.label,
+      text: translatedMeanings[index].status === 'fulfilled'
+        ? translatedMeanings[index].value
+        : meaning.summary
+    }))
+  };
+
+  WORD_DETAILS_CACHE.set(normalizedWord, result);
+  return result;
+}
+
 // 监听快捷键命令
 chrome.commands.onCommand.addListener((command) => {
   if (command === 'screenshot') {
@@ -222,4 +302,12 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       .catch(error => sendResponse({ error: error.message }));
     return true;
   }
+
+  if (message.type === 'lookupWordDetails') {
+    lookupEnglishWordDetails(message.word)
+      .then((result) => sendResponse({ result }))
+      .catch((error) => sendResponse({ error: error.message }));
+    return true;
+  }
+
 });

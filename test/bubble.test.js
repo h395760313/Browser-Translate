@@ -75,20 +75,6 @@ const createMockDocument = () => {
     const bubble = new MockElement('DIV');
     bubble.id = 'translate-bubble';
 
-    // 创建子元素
-    const header = new MockElement('DIV');
-    header.classList.add('bubble-header');
-
-    const lang = new MockElement('SPAN');
-    lang.classList.add('bubble-lang');
-    header.appendChild(lang);
-
-    const closeBtn = new MockElement('BUTTON');
-    closeBtn.classList.add('bubble-close');
-    header.appendChild(closeBtn);
-
-    bubble.appendChild(header);
-
     const original = new MockElement('DIV');
     original.classList.add('bubble-original');
     bubble.appendChild(original);
@@ -201,9 +187,6 @@ describe('翻译气泡 UI', () => {
       createBubble();
       const bubble = getBubbleDOM();
 
-      expect(bubble.querySelector('.bubble-header')).toBeTruthy();
-      expect(bubble.querySelector('.bubble-lang')).toBeTruthy();
-      expect(bubble.querySelector('.bubble-close')).toBeTruthy();
       expect(bubble.querySelector('.bubble-original')).toBeTruthy();
       expect(bubble.querySelector('.bubble-result')).toBeTruthy();
       expect(bubble.querySelector('.bubble-actions')).toBeTruthy();
@@ -284,9 +267,7 @@ describe('翻译气泡 UI', () => {
       createBubble();
       const bubble = getBubbleDOM();
 
-      bubble.querySelector('.bubble-lang').textContent = '英文 → 中文';
-
-      expect(bubble.querySelector('.bubble-lang').textContent).toBe('英文 → 中文');
+      expect(bubble.querySelector('.bubble-lang')).toBeNull();
     });
 
     test('显示加载状态', () => {
@@ -355,12 +336,11 @@ describe('翻译气泡 UI', () => {
   });
 
   describe('气泡按钮交互', () => {
-    test('关闭按钮存在', () => {
+    test('顶部不显示关闭按钮', () => {
       createBubble();
       const bubble = getBubbleDOM();
-      const closeBtn = bubble.querySelector('.bubble-close');
 
-      expect(closeBtn).toBeTruthy();
+      expect(bubble.querySelector('.bubble-close')).toBeNull();
     });
 
     test('TTS按钮存在', () => {
