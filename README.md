@@ -41,19 +41,22 @@
 
 ```
 Browser-Translate/
-├── manifest.json      # 扩展配置文件（Manifest V3）
-├── background.js      # 后台服务脚本
-├── content.js         # 内容脚本（页面交互）
-├── translation-rules.js # 选词/混合文本处理规则
-├── word-details.js    # 单词详情与词典卡片渲染
-├── tts-utils.js       # 自动断句朗读工具
-├── wordbook.js        # 本地单词本存储
-├── wordbook.html      # 单词本窗口页面
-├── wordbook-page.js   # 单词本窗口逻辑
-├── wordbook-search.js # 单词本查询逻辑
-├── styles.css         # 翻译气泡样式
-├── popup.html         # 弹出页面
-├── popup.js           # 弹出页面逻辑
+├── manifest.json       # 扩展配置文件（Manifest V3）
+├── js/
+│   ├── background.js   # 后台服务脚本
+│   ├── content.js      # 内容脚本（页面交互）
+│   ├── popup.js        # 弹出页面逻辑
+│   ├── translation-rules.js # 选词/混合文本处理规则
+│   ├── tts-utils.js    # 自动断句朗读工具
+│   ├── word-details.js # 单词详情与词典卡片渲染
+│   ├── wordbook.js     # 本地单词本存储
+│   ├── wordbook-page.js # 单词本窗口逻辑
+│   └── wordbook-search.js # 单词本查询逻辑
+├── css/
+│   └── styles.css      # 翻译气泡样式
+├── html/
+│   ├── popup.html      # 弹出页面
+│   └── wordbook.html   # 单词本窗口页面
 ├── icons/             # 图标文件（16/48/128）
 ├── test/              # 单元测试
 │   ├── setup.js       # 测试环境配置
@@ -81,8 +84,9 @@ npm test
 
 # 语法检查
 node --check background.js
-node --check content.js
-node --check popup.js
+node --check js/background.js
+node --check js/content.js
+node --check js/popup.js
 ```
 
 ## 技术栈

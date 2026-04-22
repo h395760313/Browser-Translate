@@ -1,4 +1,4 @@
-const { filterWordbookEntries, normalizeQuery } = require('../wordbook-search');
+const { filterWordbookEntries, normalizeQuery } = require('../js/wordbook-search');
 
 describe('单词本查询', () => {
   const entries = [

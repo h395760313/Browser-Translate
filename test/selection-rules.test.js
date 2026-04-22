@@ -2,7 +2,7 @@ const {
   analyzeSelection,
   splitMixedText,
   mergeMixedTranslation
-} = require('../translation-rules');
+} = require('../js/translation-rules');
 
 describe('选词翻译规则', () => {
   test('纯中文文本直接跳过翻译', () => {

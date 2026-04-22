@@ -50,7 +50,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   wordbookOpenBtn.addEventListener('click', openWordbookDialog);
   function openWordbookDialog() {
     chrome.windows.create({
-      url: chrome.runtime.getURL('wordbook.html'),
+      url: chrome.runtime.getURL('html/wordbook.html'),
       type: 'popup',
       width: 760,
       height: 840,

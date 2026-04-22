@@ -28,7 +28,7 @@ describe('单词本存储', () => {
     };
 
     jest.resetModules();
-    wordbook = require('../wordbook');
+    wordbook = require('../js/wordbook');
   });
 
   afterEach(() => {

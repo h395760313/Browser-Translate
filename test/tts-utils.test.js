@@ -2,7 +2,7 @@ const {
   splitEnglishClauseBoundaries,
   splitTextIntoChunks,
   speakTextSequentially
-} = require('../tts-utils');
+} = require('../js/tts-utils');
 
 describe('TTS 自动断句', () => {
   test('按中英文标点拆分句子', () => {

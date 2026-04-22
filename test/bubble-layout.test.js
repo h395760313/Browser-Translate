@@ -1,4 +1,4 @@
-const { getBubbleLayout } = require('../word-details');
+const { getBubbleLayout } = require('../js/word-details');
 
 describe('气泡布局模式', () => {
   test('气泡顶部不显示语言栏', () => {

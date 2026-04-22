@@ -6,7 +6,7 @@ const {
   buildPartOfSpeechPrompt,
   normalizeGlossTranslation,
   pickWordPhonetic
-} = require('../word-details');
+} = require('../js/word-details');
 
 describe('单词详情格式', () => {
   test('每个词性只保留首条简短释义', () => {

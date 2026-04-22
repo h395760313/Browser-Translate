@@ -2,7 +2,7 @@
   "name": "chrome-translate-plugin",
   "version": "1.0.0",
   "description": "一个基于 Manifest V3 的 Chrome 翻译插件，支持选中文本自动翻译、TTS 朗读等功能。",
-  "main": "background.js",
+  "main": "js/background.js",
   "dependencies": {
     "base64-js": "^1.5.1",
     "bl": "^4.1.0",
