@@ -37,6 +37,89 @@
       .replace(/\s+/g, ' ');
   }
 
+  function normalizePhoneticText(text) {
+    const normalizedText = String(text || '').trim();
+    if (!normalizedText) {
+      return '';
+    }
+
+    if (/^[\[/].*[\]/]$/.test(normalizedText)) {
+      return normalizedText;
+    }
+
+    return `/${normalizedText.replace(/^\/+|\/+$/g, '')}/`;
+  }
+
+  function scorePhoneticCandidate(candidate) {
+    const tags = Array.isArray(candidate && candidate.tags)
+      ? candidate.tags.map((tag) => String(tag || '').toLowerCase())
+      : [];
+    let score = 0;
+
+    if (tags.includes('general american') || tags.includes('us')) {
+      score += 20;
+    }
+
+    if (tags.includes('standard')) {
+      score += 16;
+    }
+
+    if (tags.includes('general australian') || tags.includes('british') || tags.includes('uk')) {
+      score += 10;
+    }
+
+    if (tags.includes('informal') || tags.includes('regional')) {
+      score -= 2;
+    }
+
+    return score;
+  }
+
+  function pickWordPhonetic(entries) {
+    const candidates = [];
+
+    (entries || []).forEach((entry) => {
+      if (entry && entry.phonetic) {
+        candidates.push({
+          text: entry.phonetic,
+          tags: entry.tags || []
+        });
+      }
+
+      if (Array.isArray(entry && entry.phonetics)) {
+        entry.phonetics.forEach((phonetic) => {
+          if (phonetic && phonetic.text) {
+            candidates.push({
+              text: phonetic.text,
+              tags: phonetic.tags || []
+            });
+          }
+        });
+      }
+
+      if (Array.isArray(entry && entry.pronunciations)) {
+        entry.pronunciations.forEach((pronunciation) => {
+          if (pronunciation && pronunciation.type === 'ipa' && pronunciation.text) {
+            candidates.push({
+              text: pronunciation.text,
+              tags: pronunciation.tags || []
+            });
+          }
+        });
+      }
+    });
+
+    const bestCandidate = candidates
+      .map((candidate, index) => ({
+        ...candidate,
+        index,
+        score: scorePhoneticCandidate(candidate)
+      }))
+      .sort((a, b) => b.score - a.score || a.index - b.index)[0];
+
+    return normalizePhoneticText(bestCandidate && bestCandidate.text);
+  }
+
   function scoreDefinition(partOfSpeech, definition) {
     const rawDefinition = (definition || '').trim();
     const normalizedDefinition = compactDefinition(rawDefinition);
@@ -193,7 +276,8 @@
       showSourceTts: !isWordDetails,
       showHeaderLang: false,
       showColumnLabels: false,
-      showWordCardTts: isWordDetails
+      showWordCardTts: isWordDetails,
+      showSentenceWordbookToggle: !isWordDetails
     };
   }
 
@@ -243,6 +327,7 @@
     getPartOfSpeechLabel,
     extractMeaningSummaries,
     formatWordMeanings,
+    pickWordPhonetic,
     renderWordDetailsCard,
     getBubbleModeClass,
     getBubbleLayout,

@@ -16,6 +16,7 @@ const popupTemplate = `
           <button class="bubble-tts bubble-tts-original bubble-source-tts" title="朗读原文">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M14 3.23v17.54a1 1 0 0 1-1.64.77L7.91 18H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h3.91l4.45-3.54A1 1 0 0 1 14 3.23Zm4.72 2.64a1 1 0 0 1 1.41.08 8 8 0 0 1 0 11.1 1 1 0 1 1-1.49-1.34 6 6 0 0 0 0-8.42 1 1 0 0 1 .08-1.42Zm-2.61 2.25a1 1 0 0 1 1.42.06 4 4 0 0 1 0 5.64 1 1 0 1 1-1.48-1.34 2 2 0 0 0 0-2.96 1 1 0 0 1 .06-1.4Z"/></svg>
           </button>
+          <button class="bubble-wordbook-toggle" title="加入单词本" aria-label="加入单词本">加入单词本</button>
           <button class="bubble-copy" title="复制译文">📋</button>
         </div>
       </div>
@@ -121,7 +122,8 @@ const getBubbleLayout = wordDetailsApi.getBubbleLayout || ((isWordDetails) => ({
   showSourceTts: !isWordDetails,
   showHeaderLang: false,
   showColumnLabels: false,
-  showWordCardTts: isWordDetails
+  showWordCardTts: isWordDetails,
+  showSentenceWordbookToggle: !isWordDetails
 }));
 const speakTextSequentially = ttsUtils.speakTextSequentially || (async () => false);
 const cancelSpeechPlayback = ttsUtils.cancelSpeechPlayback || (() => {
@@ -212,8 +214,8 @@ async function lookupWordDetails(word) {
   });
 }
 
-function syncWordbookButtonState(bubble, isInWordbook) {
-  const button = bubble.querySelector('.word-details-wordbook-toggle');
+function syncWordbookButtonState(bubble, isInWordbook, selector = '.word-details-wordbook-toggle') {
+  const button = bubble.querySelector(selector);
   if (!button) {
     return;
   }
@@ -235,11 +237,37 @@ function readWordbookEntryFromBubble(bubble) {
     return { label, text };
   }).filter((meaning) => meaning.label && meaning.text);
 
+  if (!word.trim()) {
+    return null;
+  }
+
   return {
     word,
     displayWord: word,
     phonetic,
     meanings,
+    originalText: word
+  };
+}
+
+function buildSentenceWordbookEntry(originalText, resultText) {
+  const word = String(originalText || '').trim();
+  const translation = String(resultText || '').trim();
+
+  if (!word || !translation) {
+    return null;
+  }
+
+  return {
+    word,
+    displayWord: word,
+    phonetic: '',
+    meanings: [
+      {
+        label: '译文',
+        text: translation
+      }
+    ],
     originalText: word
   };
 }
@@ -288,6 +316,7 @@ function applyBubbleLayout(bubble, isWordDetails) {
   const originalColumn = bubble.querySelector('.bubble-original-col');
   const divider = bubble.querySelector('.bubble-divider');
   const sourceTts = bubble.querySelector('.bubble-source-tts');
+  const wordbookToggle = bubble.querySelector('.bubble-wordbook-toggle');
   const copyButton = bubble.querySelector('.bubble-copy');
   const headerLang = bubble.querySelector('.bubble-lang');
   const columnLabels = bubble.querySelectorAll('.bubble-col-label');
@@ -302,6 +331,10 @@ function applyBubbleLayout(bubble, isWordDetails) {
 
   if (sourceTts) {
     sourceTts.style.display = layout.showSourceTts ? 'inline-flex' : 'none';
+  }
+
+  if (wordbookToggle) {
+    wordbookToggle.style.display = layout.showSentenceWordbookToggle ? 'inline-flex' : 'none';
   }
 
   if (copyButton) {
@@ -358,7 +391,14 @@ async function buildSelectionDisplay(selectedText) {
           resultSpeakText: formattedMeanings,
           originalSpeakLang: 'en',
           resultSpeakLang: 'zh',
-          isInWordbook: Boolean(wordbookEntry)
+          isInWordbook: Boolean(wordbookEntry),
+          wordbookEntry: {
+            word: analysis.normalizedText,
+            displayWord: analysis.normalizedText,
+            phonetic: wordDetails.phonetic || '',
+            meanings: Array.isArray(wordDetails.meanings) ? wordDetails.meanings : [],
+            originalText: analysis.normalizedText
+          }
         };
       }
     } catch (error) {
@@ -368,6 +408,8 @@ async function buildSelectionDisplay(selectedText) {
 
   if (analysis.mode === 'mixed') {
     const translatedText = await translateMixedText(analysis.normalizedText);
+    const wordbookEntry = buildSentenceWordbookEntry(analysis.normalizedText, translatedText);
+    const existingWordbookEntry = await getWordbookEntry(analysis.normalizedText);
     return {
       originalText: analysis.normalizedText,
       resultText: translatedText,
@@ -379,13 +421,16 @@ async function buildSelectionDisplay(selectedText) {
       resultSpeakText: translatedText,
       originalSpeakLang: 'zh',
       resultSpeakLang: 'zh',
-      isInWordbook: false
+      isInWordbook: Boolean(existingWordbookEntry),
+      wordbookEntry
     };
   }
 
   const fromLang = detectLanguage(analysis.normalizedText);
   const toLang = fromLang === 'zh' ? 'en' : 'zh';
   const translatedText = await translateText(analysis.normalizedText, fromLang, toLang);
+  const wordbookEntry = buildSentenceWordbookEntry(analysis.normalizedText, translatedText);
+  const existingWordbookEntry = await getWordbookEntry(analysis.normalizedText);
 
   return {
     originalText: analysis.normalizedText,
@@ -398,7 +443,8 @@ async function buildSelectionDisplay(selectedText) {
     resultSpeakText: translatedText,
     originalSpeakLang: fromLang,
     resultSpeakLang: toLang,
-    isInWordbook: false
+    isInWordbook: Boolean(existingWordbookEntry),
+    wordbookEntry
   };
 }
 
@@ -555,14 +601,16 @@ document.addEventListener('mouseup', async (e) => {
       currentOriginalSpeakLang = displayData.originalSpeakLang;
       currentResultSpeakLang = displayData.resultSpeakLang;
       currentResultCopyText = displayData.resultText;
-      currentWordbookEntry = displayData.isWordDetails ? readWordbookEntryFromBubble(bubble) : null;
 
       bubble.querySelector('.bubble-original').textContent = displayData.originalText;
       setBubbleMode(bubble, displayData.isWordDetails);
       applyBubbleLayout(bubble, displayData.isWordDetails);
       renderBubbleResult(bubble.querySelector('.bubble-result'), displayData);
+      currentWordbookEntry = displayData.wordbookEntry || (displayData.isWordDetails ? readWordbookEntryFromBubble(bubble) : null);
       if (displayData.isWordDetails) {
-        syncWordbookButtonState(bubble, displayData.isInWordbook);
+        syncWordbookButtonState(bubble, displayData.isInWordbook, '.word-details-wordbook-toggle');
+      } else {
+        syncWordbookButtonState(bubble, displayData.isInWordbook, '.bubble-wordbook-toggle');
       }
       bubble.querySelector('.bubble-loading').classList.remove('show');
     } catch (error) {
@@ -613,17 +661,31 @@ document.addEventListener('click', (e) => {
     }
 
     // 单词本按钮
-    if (e.target.classList.contains('word-details-wordbook-toggle') || e.target.closest('.word-details-wordbook-toggle')) {
-      const button = e.target.closest('.word-details-wordbook-toggle');
+    if (
+      e.target.classList.contains('word-details-wordbook-toggle') ||
+      e.target.closest('.word-details-wordbook-toggle') ||
+      e.target.classList.contains('bubble-wordbook-toggle') ||
+      e.target.closest('.bubble-wordbook-toggle')
+    ) {
+      const button = e.target.closest('.word-details-wordbook-toggle, .bubble-wordbook-toggle');
       if (!button) {
         return;
       }
 
-      button.disabled = true;
       const entry = currentWordbookEntry || readWordbookEntryFromBubble(bubble);
+      if (!entry) {
+        console.error('单词本条目缺失，无法保存');
+        return;
+      }
+
+      button.disabled = true;
       toggleWordbookEntry(entry)
         .then((result) => {
-          syncWordbookButtonState(bubble, Boolean(result && result.saved));
+          currentWordbookEntry = result && result.entry ? result.entry : entry;
+          const selector = button.classList.contains('bubble-wordbook-toggle')
+            ? '.bubble-wordbook-toggle'
+            : '.word-details-wordbook-toggle';
+          syncWordbookButtonState(bubble, Boolean(result && result.saved), selector);
         })
         .catch((error) => {
           console.error('更新单词本失败:', error);

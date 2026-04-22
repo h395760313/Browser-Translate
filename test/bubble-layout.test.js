@@ -15,7 +15,8 @@ describe('气泡布局模式', () => {
       showSourceTts: false,
       showHeaderLang: false,
       showColumnLabels: false,
-      showWordCardTts: true
+      showWordCardTts: true,
+      showSentenceWordbookToggle: false
     });
   });
 
@@ -28,7 +29,8 @@ describe('气泡布局模式', () => {
       showSourceTts: true,
       showHeaderLang: false,
       showColumnLabels: false,
-      showWordCardTts: false
+      showWordCardTts: false,
+      showSentenceWordbookToggle: true
     });
   });
 });

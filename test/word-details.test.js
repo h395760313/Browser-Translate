@@ -4,7 +4,8 @@ const {
   renderWordDetailsCard,
   getBubbleModeClass,
   buildPartOfSpeechPrompt,
-  normalizeGlossTranslation
+  normalizeGlossTranslation,
+  pickWordPhonetic
 } = require('../word-details');
 
 describe('单词详情格式', () => {
@@ -140,5 +141,31 @@ describe('单词详情格式', () => {
     expect(normalizeGlossTranslation('noun', '一本书')).toBe('书');
     expect(normalizeGlossTranslation('noun', '一盏灯')).toBe('灯');
     expect(normalizeGlossTranslation('verb', '去预订')).toBe('预订');
+  });
+
+  test('优先选择带标签的音标', () => {
+    const phonetic = pickWordPhonetic([
+      {
+        phonetics: [
+          { text: '/wɪð/', tags: [] },
+          { text: '/wɪθ/', tags: ['General American'] }
+        ]
+      }
+    ]);
+
+    expect(phonetic).toBe('/wɪθ/');
+  });
+
+  test('支持从备用词典的 pronunciations 中提取音标', () => {
+    const phonetic = pickWordPhonetic([
+      {
+        pronunciations: [
+          { type: 'ipa', text: '/wɪð/', tags: [] },
+          { type: 'ipa', text: '/wɪθ/', tags: ['General American'] }
+        ]
+      }
+    ]);
+
+    expect(phonetic).toBe('/wɪθ/');
   });
 });

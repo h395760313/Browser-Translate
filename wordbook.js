@@ -33,7 +33,7 @@
       return null;
     }
 
-    const word = normalizeWord(entry.word);
+    const word = normalizeWord(entry.word || entry.originalText);
     if (!word) {
       return null;
     }

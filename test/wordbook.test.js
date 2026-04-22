@@ -90,4 +90,21 @@ describe('单词本存储', () => {
     expect(removeResult.saved).toBe(false);
     expect(await wordbook.getWordbookEntry('light')).toBeNull();
   });
+
+  test('句子也可以保存到单词本', async () => {
+    const sentence = {
+      word: 'It encompasses a wide range of skills and techniques.',
+      displayWord: 'It encompasses a wide range of skills and techniques.',
+      meanings: [{ label: '译文', text: '它涵盖了广泛的技能和技术。' }],
+      originalText: 'It encompasses a wide range of skills and techniques.'
+    };
+
+    const addResult = await wordbook.toggleWordbookEntry(sentence);
+    expect(addResult.saved).toBe(true);
+
+    const entry = await wordbook.getWordbookEntry('It encompasses a wide range of skills and techniques.');
+    expect(entry).toBeTruthy();
+    expect(entry.displayWord).toBe(sentence.displayWord);
+    expect(entry.meanings).toEqual([{ label: '译文', text: '它涵盖了广泛的技能和技术。' }]);
+  });
 });

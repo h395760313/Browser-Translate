@@ -16,6 +16,20 @@ describe('选词翻译规则', () => {
     expect(analysis.isSingleEnglishWord).toBe(true);
   });
 
+  test('带首尾空白的单个英文单词仍进入单词详情模式', () => {
+    const analysis = analyzeSelection('  translation  ');
+
+    expect(analysis.mode).toBe('single-word');
+    expect(analysis.normalizedText).toBe('translation');
+  });
+
+  test('带不可见空白的单个英文单词仍进入单词详情模式', () => {
+    const analysis = analyzeSelection('\u200Btranslation\u200B');
+
+    expect(analysis.mode).toBe('single-word');
+    expect(analysis.normalizedText).toBe('translation');
+  });
+
   test('英文句子仍然走普通整句翻译', () => {
     expect(analyzeSelection('This is a test sentence.').mode).toBe('translate');
   });

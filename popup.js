@@ -15,13 +15,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   const screenshotShortcut = document.getElementById('screenshot-shortcut');
   const shortcutError = document.getElementById('shortcut-error');
   const wordbookCount = document.getElementById('wordbook-count');
-  const wordbookList = document.getElementById('wordbook-list');
   const wordbookOpenBtn = document.getElementById('wordbook-open-btn');
   const wordbookApi = globalThis.Wordbook || {};
   const getWordbookEntries = wordbookApi.getWordbookEntries || (async () => []);
-  const toggleWordbookEntry = wordbookApi.toggleWordbookEntry || (async () => ({ saved: false, entries: [] }));
   const wordbookStorageKey = wordbookApi.STORAGE_KEY || 'wordbookEntries';
-  let cachedWordbookEntries = [];
 
   // 读取设置
   const settings = await chrome.storage.sync.get({
@@ -35,83 +32,20 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
   screenshotShortcut.value = settings.screenshotShortcut;
 
-  async function renderWordbookList() {
+  async function renderWordbookCount() {
     const entries = await getWordbookEntries();
-    cachedWordbookEntries = entries;
-    wordbookCount.textContent = `${entries.length} 个单词`;
-    wordbookList.innerHTML = '';
-
-    if (!entries.length) {
-      const empty = document.createElement('div');
-      empty.className = 'wordbook-empty';
-      empty.textContent = '暂时还没有保存单词。选中单词后，点击“加入单词本”即可保存到本地。';
-      wordbookList.appendChild(empty);
-      return;
+    if (wordbookCount) {
+      wordbookCount.textContent = `${entries.length} 个单词`;
     }
-
-    entries.forEach((entry) => {
-      wordbookList.appendChild(createWordbookItem(entry));
-    });
   }
-
-  function createWordbookItem(entry) {
-    const item = document.createElement('div');
-    item.className = 'wordbook-item';
-
-    const head = document.createElement('div');
-    head.className = 'wordbook-item-head';
-
-    const wordBlock = document.createElement('div');
-
-    const word = document.createElement('div');
-    word.className = 'wordbook-word';
-    word.textContent = entry.displayWord || entry.word;
-    wordBlock.appendChild(word);
-
-    if (entry.phonetic) {
-      const phonetic = document.createElement('span');
-      phonetic.className = 'wordbook-phonetic';
-      phonetic.textContent = entry.phonetic;
-      wordBlock.appendChild(phonetic);
-    }
-
-    const removeBtn = document.createElement('button');
-    removeBtn.className = 'wordbook-remove';
-    removeBtn.textContent = '移除';
-    removeBtn.addEventListener('click', async () => {
-      removeBtn.disabled = true;
-      try {
-        await toggleWordbookEntry(entry);
-        await renderWordbookList();
-      } finally {
-        removeBtn.disabled = false;
-      }
-    });
-
-    head.appendChild(wordBlock);
-    head.appendChild(removeBtn);
-    item.appendChild(head);
-
-    if (Array.isArray(entry.meanings) && entry.meanings.length) {
-      const meanings = document.createElement('div');
-      meanings.className = 'wordbook-meanings';
-      meanings.textContent = entry.meanings
-        .map((meaning) => `${meaning.label} ${meaning.text}`)
-        .join('\n');
-      item.appendChild(meanings);
-    }
-
-    return item;
-  }
-
 
   chrome.storage.onChanged.addListener((changes, areaName) => {
     if (areaName === 'local' && changes[wordbookStorageKey]) {
-      renderWordbookList();
+      renderWordbookCount();
     }
   });
 
-  await renderWordbookList();
+  await renderWordbookCount();
 
   wordbookOpenBtn.addEventListener('click', openWordbookDialog);
   function openWordbookDialog() {

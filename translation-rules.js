@@ -11,6 +11,7 @@
   const ENGLISH_LETTER_REGEX = /[A-Za-z]/;
   const SINGLE_ENGLISH_WORD_REGEX = /^[A-Za-z]+(?:['’-][A-Za-z]+)*$/;
   const MIXED_ENGLISH_SEGMENT_REGEX = /[A-Za-z][A-Za-z0-9'’-]*(?:\s+[A-Za-z][A-Za-z0-9'’-]*)*/g;
+  const ZERO_WIDTH_CHAR_REGEX = /[\u200B-\u200D\uFEFF]/g;
 
   function hasChineseChars(text) {
     return CHINESE_CHAR_REGEX.test(text || '');
@@ -20,12 +21,33 @@
     return ENGLISH_LETTER_REGEX.test(text || '');
   }
 
+  function normalizeSelectionText(text) {
+    return (text || '')
+      .replace(ZERO_WIDTH_CHAR_REGEX, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
   function isSingleEnglishWord(text) {
-    return SINGLE_ENGLISH_WORD_REGEX.test((text || '').trim());
+    const normalizedText = normalizeSelectionText(text);
+    if (!normalizedText) {
+      return false;
+    }
+
+    if (SINGLE_ENGLISH_WORD_REGEX.test(normalizedText)) {
+      return true;
+    }
+
+    const englishTokens = normalizedText.match(/[A-Za-z]+(?:['’-][A-Za-z]+)*/g) || [];
+    if (englishTokens.length !== 1) {
+      return false;
+    }
+
+    return normalizedText.replace(englishTokens[0], '').trim().length === 0;
   }
 
   function analyzeSelection(text) {
-    const normalizedText = (text || '').trim();
+    const normalizedText = normalizeSelectionText(text);
     const containsChinese = hasChineseChars(normalizedText);
     const containsEnglish = hasEnglishLetters(normalizedText);
     const singleEnglishWord = isSingleEnglishWord(normalizedText);
@@ -102,6 +124,7 @@
     analyzeSelection,
     hasChineseChars,
     hasEnglishLetters,
+    normalizeSelectionText,
     isSingleEnglishWord,
     splitMixedText,
     mergeMixedTranslation

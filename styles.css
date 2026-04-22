@@ -256,7 +256,8 @@
   color: #777;
 }
 
-.word-details-wordbook-toggle {
+.word-details-wordbook-toggle,
+.bubble-wordbook-toggle {
   border: 1px solid #d8d8d8;
   background: #fff;
   color: #444;
@@ -268,18 +269,21 @@
   transition: border-color 0.15s, color 0.15s, background-color 0.15s;
 }
 
-.word-details-wordbook-toggle:hover {
+.word-details-wordbook-toggle:hover,
+.bubble-wordbook-toggle:hover {
   border-color: #bcbcbc;
   background: #f7f7f7;
 }
 
-.word-details-wordbook-toggle.is-saved {
+.word-details-wordbook-toggle.is-saved,
+.bubble-wordbook-toggle.is-saved {
   border-color: #4a90d9;
   color: #2f6fb8;
   background: #f2f7ff;
 }
 
-.word-details-wordbook-toggle:disabled {
+.word-details-wordbook-toggle:disabled,
+.bubble-wordbook-toggle:disabled {
   opacity: 0.65;
   cursor: wait;
 }
@@ -462,17 +466,20 @@
     color: #b8b8b8;
   }
 
-  .word-details-wordbook-toggle {
+  .word-details-wordbook-toggle,
+  .bubble-wordbook-toggle {
     border-color: #cfcfcf;
     background: #fff;
     color: #444;
   }
 
-  .word-details-wordbook-toggle:hover {
+  .word-details-wordbook-toggle:hover,
+  .bubble-wordbook-toggle:hover {
     background: #f4f4f4;
   }
 
-  .word-details-wordbook-toggle.is-saved {
+  .word-details-wordbook-toggle.is-saved,
+  .bubble-wordbook-toggle.is-saved {
     border-color: #4a90d9;
     color: #2f6fb8;
     background: #f2f7ff;

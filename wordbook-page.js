@@ -12,6 +12,21 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   let cachedEntries = [];
 
+  function formatMeaningText(meaning) {
+    const label = String(meaning && meaning.label || '').trim();
+    const text = String(meaning && meaning.text || '').trim();
+
+    if (!text) {
+      return '';
+    }
+
+    if (!label || label === '译文') {
+      return text;
+    }
+
+    return `${label} ${text}`;
+  }
+
   function createWordbookItem(entry) {
     const item = document.createElement('div');
     item.className = 'wordbook-item';
@@ -54,7 +69,8 @@ document.addEventListener('DOMContentLoaded', async () => {
       const meanings = document.createElement('div');
       meanings.className = 'wordbook-meanings';
       meanings.textContent = entry.meanings
-        .map((meaning) => `${meaning.label} ${meaning.text}`)
+        .map(formatMeaningText)
+        .filter(Boolean)
         .join('\n');
       item.appendChild(meanings);
     }
