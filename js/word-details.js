@@ -306,14 +306,16 @@
       return '';
     }
 
+    const stripLeadingEnglishArticle = (text) => text.replace(/^(?:a|an|the)\s*/i, '');
+
     if (partOfSpeech === 'adjective') {
-      return normalizedText.replace(/^(非常|很|十分|挺|太|极其|格外|尤其)/, '') || normalizedText;
+      return stripLeadingEnglishArticle(normalizedText.replace(/^(非常|很|十分|挺|太|极其|格外|尤其)/, '')) || normalizedText;
     }
 
     if (partOfSpeech === 'noun') {
-      return normalizedText
+      return stripLeadingEnglishArticle(normalizedText
         .replace(/^一(?:个|本|只|条|台|盏|张|位|名|间|件|项|把|块|片|份|种|门|辆|棵|枚|支|首|场|座|册|页|双|则|笔|封|套|盒|滴|线|头|次)?/, '')
-        || normalizedText;
+      ) || normalizedText;
     }
 
     if (partOfSpeech === 'verb') {

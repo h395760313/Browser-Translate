@@ -96,10 +96,16 @@ const wordDetailsApi = globalThis.WordDetails || {};
 const ttsUtils = globalThis.TTSUtils || {};
 const wordbookApi = globalThis.Wordbook || {};
 const analyzeSelection = translationRules.analyzeSelection || ((text) => {
-  const normalizedText = (text || '').trim();
+  const normalizedText = String(text || '')
+    .replace(/[\u200B-\u200D\uFEFF]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+  const strippedText = normalizedText.replace(/^[\s\u200B-\u200D\uFEFF"“”'‘’()【】\[\]{}<>.,!?;:，。！？、-]+|[\s\u200B-\u200D\uFEFF"“”'‘’()【】\[\]{}<>.,!?;:，。！？、-]+$/g, '');
   const hasEnglish = /[A-Za-z]/.test(normalizedText);
   const hasChinese = /[\u4e00-\u9fff]/.test(normalizedText);
-  const isSingleWord = /^[A-Za-z]+(?:['’-][A-Za-z]+)*$/.test(normalizedText);
+  const isSingleWord = /^[A-Za-z]+(?:['’-][A-Za-z]+)*$/.test(normalizedText)
+    || /^[A-Za-z]+(?:['’-][A-Za-z]+)*$/.test(strippedText)
+    || (((strippedText.match(/[A-Za-z]+(?:['’-][A-Za-z]+)*/g) || []).length === 1) && strippedText.replace(/[A-Za-z]+(?:['’-][A-Za-z]+)*/, '').trim().length === 0);
 
   return {
     normalizedText,

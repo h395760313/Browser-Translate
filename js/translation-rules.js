@@ -10,6 +10,7 @@
   const CHINESE_CHAR_REGEX = /[\u4e00-\u9fff]/;
   const ENGLISH_LETTER_REGEX = /[A-Za-z]/;
   const SINGLE_ENGLISH_WORD_REGEX = /^[A-Za-z]+(?:['’-][A-Za-z]+)*$/;
+  const WORD_BOUNDARY_STRIP_REGEX = /^[\s\u200B-\u200D\uFEFF"“”'‘’()【】\[\]{}<>.,!?;:，。！？、-]+|[\s\u200B-\u200D\uFEFF"“”'‘’()【】\[\]{}<>.,!?;:，。！？、-]+$/g;
   const MIXED_ENGLISH_SEGMENT_REGEX = /[A-Za-z][A-Za-z0-9'’-]*(?:\s+[A-Za-z][A-Za-z0-9'’-]*)*/g;
   const ZERO_WIDTH_CHAR_REGEX = /[\u200B-\u200D\uFEFF]/g;
 
@@ -38,12 +39,17 @@
       return true;
     }
 
-    const englishTokens = normalizedText.match(/[A-Za-z]+(?:['’-][A-Za-z]+)*/g) || [];
+    const strippedText = normalizedText.replace(WORD_BOUNDARY_STRIP_REGEX, '');
+    if (SINGLE_ENGLISH_WORD_REGEX.test(strippedText)) {
+      return true;
+    }
+
+    const englishTokens = strippedText.match(/[A-Za-z]+(?:['’-][A-Za-z]+)*/g) || [];
     if (englishTokens.length !== 1) {
       return false;
     }
 
-    return normalizedText.replace(englishTokens[0], '').trim().length === 0;
+    return strippedText.replace(englishTokens[0], '').trim().length === 0;
   }
 
   function analyzeSelection(text) {

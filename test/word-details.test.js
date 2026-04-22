@@ -140,6 +140,7 @@ describe('单词详情格式', () => {
     expect(normalizeGlossTranslation('adjective', '非常棒')).toBe('棒');
     expect(normalizeGlossTranslation('noun', '一本书')).toBe('书');
     expect(normalizeGlossTranslation('noun', '一盏灯')).toBe('灯');
+    expect(normalizeGlossTranslation('noun', 'a能力')).toBe('能力');
     expect(normalizeGlossTranslation('verb', '去预订')).toBe('预订');
   });
 

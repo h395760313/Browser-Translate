@@ -30,6 +30,20 @@ describe('选词翻译规则', () => {
     expect(analysis.normalizedText).toBe('translation');
   });
 
+  test('带引号和标点包裹的单个英文单词仍进入单词详情模式', () => {
+    const analysis = analyzeSelection(' “with,” ');
+
+    expect(analysis.mode).toBe('single-word');
+    expect(analysis.normalizedText).toBe('“with,”');
+  });
+
+  test('带换行和制表符的单个英文单词仍进入单词详情模式', () => {
+    const analysis = analyzeSelection('\n\twith\t\n');
+
+    expect(analysis.mode).toBe('single-word');
+    expect(analysis.normalizedText).toBe('with');
+  });
+
   test('英文句子仍然走普通整句翻译', () => {
     expect(analyzeSelection('This is a test sentence.').mode).toBe('translate');
   });
