@@ -22,8 +22,7 @@
   "host_permissions": [
     "https://fanyi-api.baidu.com/*",
     "https://api.ocr.space/*",
-    "https://api.dictionaryapi.dev/*",
-    "https://freedictionaryapi.com/*"
+    "https://api.dictionaryapi.dev/*"
   ],
   "action": {
     "default_popup": "html/popup.html",

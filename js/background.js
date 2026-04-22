@@ -5,7 +5,6 @@ importScripts('word-details.js');
 const BAIDU_APP_ID = '20260329002582740';
 const BAIDU_APP_KEY = 'ZxCWWlvGiSUiAW8M9fnl';
 const DICTIONARY_API_BASE = 'https://api.dictionaryapi.dev/api/v2/entries/en/';
-const FALLBACK_DICTIONARY_API_BASE = 'https://freedictionaryapi.com/api/v1/entries/en/';
 const wordDetailsApi = globalThis.WordDetails || {};
 const extractMeaningSummaries = wordDetailsApi.extractMeaningSummaries || (() => []);
 const buildPartOfSpeechPrompt = wordDetailsApi.buildPartOfSpeechPrompt || ((word) => word);
@@ -226,20 +225,6 @@ async function baiduTranslate(text, from, to) {
 
 const WORD_DETAILS_CACHE = new Map();
 
-async function fetchFallbackPhonetic(word) {
-  const response = await fetch(FALLBACK_DICTIONARY_API_BASE + encodeURIComponent(word));
-  if (!response.ok) {
-    throw new Error('单词音标查询失败');
-  }
-
-  const data = await response.json();
-  if (!data || !Array.isArray(data.entries)) {
-    return '';
-  }
-
-  return pickWordPhonetic(data.entries);
-}
-
 async function lookupEnglishWordDetails(word) {
   const normalizedWord = (word || '').trim().toLowerCase();
 
@@ -261,14 +246,7 @@ async function lookupEnglishWordDetails(word) {
     return { word: normalizedWord, phonetic: '', meanings: [] };
   }
 
-  let phonetic = pickWordPhonetic(entries);
-  if (!phonetic) {
-    try {
-      phonetic = await fetchFallbackPhonetic(normalizedWord);
-    } catch (error) {
-      console.warn('备用音标查询失败:', error);
-    }
-  }
+  const phonetic = pickWordPhonetic(entries);
   const meaningSummaries = extractMeaningSummaries(entries);
   const translatedMeanings = await Promise.allSettled(
     meaningSummaries.map(async (meaning) => {

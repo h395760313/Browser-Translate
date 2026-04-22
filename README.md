@@ -95,11 +95,11 @@ node --check js/popup.js
 - 原生 JavaScript
 - Jest（单元测试）
 - 百度翻译 API（句子翻译）
-- dictionaryapi.dev / FreeDictionaryAPI（单词释义和音标）
+- dictionaryapi.dev（单词释义和音标）
 
 ## API 说明
 
-句子翻译使用百度翻译接口。单词模式会先查 dictionaryapi.dev，缺少音标时再回退到 FreeDictionaryAPI。
+句子翻译使用百度翻译接口。单词模式会查 dictionaryapi.dev，音标取不到时就留空。
 
 ## 注意事项
 
