@@ -212,6 +212,17 @@
       .join('\n');
   }
 
+  function normalizeEnglishText(text) {
+    return String(text || '')
+      .replace(/[\u2018\u2019]/g, '\'');
+  }
+
+  function normalizeLookupWord(word) {
+    return normalizeEnglishText(word)
+      .trim()
+      .toLowerCase();
+  }
+
   function escapeHtml(text) {
     return String(text || '')
       .replace(/&/g, '&amp;')
@@ -282,7 +293,7 @@
   }
 
   function buildPartOfSpeechPrompt(word, partOfSpeech) {
-    const normalizedWord = (word || '').trim();
+    const normalizedWord = normalizeLookupWord(word);
 
     if (partOfSpeech === 'noun') {
       return `a ${normalizedWord}`;
@@ -329,6 +340,8 @@
     getPartOfSpeechLabel,
     extractMeaningSummaries,
     formatWordMeanings,
+    normalizeEnglishText,
+    normalizeLookupWord,
     pickWordPhonetic,
     renderWordDetailsCard,
     getBubbleModeClass,

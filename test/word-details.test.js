@@ -5,6 +5,8 @@ const {
   getBubbleModeClass,
   buildPartOfSpeechPrompt,
   normalizeGlossTranslation,
+  normalizeEnglishText,
+  normalizeLookupWord,
   pickWordPhonetic
 } = require('../js/word-details');
 
@@ -134,6 +136,15 @@ describe('单词详情格式', () => {
     expect(buildPartOfSpeechPrompt('rad', 'adjective')).toBe('very rad');
     expect(buildPartOfSpeechPrompt('rad', 'noun')).toBe('a rad');
     expect(buildPartOfSpeechPrompt('book', 'verb')).toBe('to book');
+    expect(buildPartOfSpeechPrompt('don’t', 'verb')).toBe('to don\'t');
+  });
+
+  test('查询前统一规范化弯引号词形', () => {
+    expect(normalizeLookupWord(' don’t ')).toBe('don\'t');
+  });
+
+  test('整句中的英文弯引号会被统一规范化', () => {
+    expect(normalizeEnglishText('don’t do that')).toBe('don\'t do that');
   });
 
   test('清理百度返回的上下文翻译前缀', () => {

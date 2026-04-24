@@ -9,6 +9,8 @@ const wordDetailsApi = globalThis.WordDetails || {};
 const extractMeaningSummaries = wordDetailsApi.extractMeaningSummaries || (() => []);
 const buildPartOfSpeechPrompt = wordDetailsApi.buildPartOfSpeechPrompt || ((word) => word);
 const normalizeGlossTranslation = wordDetailsApi.normalizeGlossTranslation || ((partOfSpeech, text) => text);
+const normalizeEnglishText = wordDetailsApi.normalizeEnglishText || ((text) => String(text || '').replace(/[\u2018\u2019]/g, '\''));
+const normalizeLookupWord = wordDetailsApi.normalizeLookupWord || ((word) => String(word || '').trim().toLowerCase().replace(/[\u2018\u2019]/g, '\''));
 const pickWordPhonetic = wordDetailsApi.pickWordPhonetic || ((entries) => {
   for (const entry of entries || []) {
     if (entry && entry.phonetic) {
@@ -188,8 +190,9 @@ const md5 = (function() {
 
 // 百度翻译
 async function baiduTranslate(text, from, to) {
+  const normalizedText = normalizeEnglishText(text);
   const salt = Date.now();
-  const signStr = BAIDU_APP_ID + text + salt + BAIDU_APP_KEY;
+  const signStr = BAIDU_APP_ID + normalizedText + salt + BAIDU_APP_KEY;
   const sign = md5(signStr);
 
   const langMap = { zh: 'zh', en: 'en' };
@@ -198,7 +201,7 @@ async function baiduTranslate(text, from, to) {
 
   const url = 'https://fanyi-api.baidu.com/api/trans/vip/translate';
   const params = new URLSearchParams({
-    q: text,
+    q: normalizedText,
     from: fromLang,
     to: toLang,
     appid: BAIDU_APP_ID,
@@ -226,7 +229,7 @@ async function baiduTranslate(text, from, to) {
 const WORD_DETAILS_CACHE = new Map();
 
 async function lookupEnglishWordDetails(word) {
-  const normalizedWord = (word || '').trim().toLowerCase();
+  const normalizedWord = normalizeLookupWord(word);
 
   if (!normalizedWord) {
     return { word: '', phonetic: '', meanings: [] };
