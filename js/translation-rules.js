@@ -40,16 +40,7 @@
     }
 
     const strippedText = normalizedText.replace(WORD_BOUNDARY_STRIP_REGEX, '');
-    if (SINGLE_ENGLISH_WORD_REGEX.test(strippedText)) {
-      return true;
-    }
-
-    const englishTokens = strippedText.match(/[A-Za-z]+(?:['’-][A-Za-z]+)*/g) || [];
-    if (englishTokens.length !== 1) {
-      return false;
-    }
-
-    return strippedText.replace(englishTokens[0], '').trim().length === 0;
+    return SINGLE_ENGLISH_WORD_REGEX.test(strippedText);
   }
 
   function analyzeSelection(text) {

@@ -104,8 +104,7 @@ const analyzeSelection = translationRules.analyzeSelection || ((text) => {
   const hasEnglish = /[A-Za-z]/.test(normalizedText);
   const hasChinese = /[\u4e00-\u9fff]/.test(normalizedText);
   const isSingleWord = /^[A-Za-z]+(?:['’-][A-Za-z]+)*$/.test(normalizedText)
-    || /^[A-Za-z]+(?:['’-][A-Za-z]+)*$/.test(strippedText)
-    || (((strippedText.match(/[A-Za-z]+(?:['’-][A-Za-z]+)*/g) || []).length === 1) && strippedText.replace(/[A-Za-z]+(?:['’-][A-Za-z]+)*/, '').trim().length === 0);
+    || /^[A-Za-z]+(?:['’-][A-Za-z]+)*$/.test(strippedText);
 
   return {
     normalizedText,

@@ -48,6 +48,20 @@ describe('选词翻译规则', () => {
     expect(analyzeSelection('This is a test sentence.').mode).toBe('translate');
   });
 
+  test('带空格的英文短语不会误判成单词模式', () => {
+    const analysis = analyzeSelection('capabilities and limitations');
+
+    expect(analysis.mode).toBe('translate');
+    expect(analysis.isSingleEnglishWord).toBe(false);
+  });
+
+  test('带括号的英文句子不会误判成单词模式', () => {
+    const analysis = analyzeSelection('(Prompt engineering is useful for LLMs.)');
+
+    expect(analysis.mode).toBe('translate');
+    expect(analysis.isSingleEnglishWord).toBe(false);
+  });
+
   test('中英混合文本只拆分英文片段', () => {
     expect(splitMixedText('今天学习 English grammar 很重要')).toEqual([
       { type: 'static', text: '今天学习 ' },
