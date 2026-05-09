@@ -183,6 +183,11 @@ describe('单词详情格式', () => {
     expect(normalizeEnglishText('don’t do that')).toBe('don\'t do that');
   });
 
+  test('整句中的排版标点会被规范化后再翻译', () => {
+    expect(normalizeEnglishText('code has been king — specifications called it “real work”…'))
+      .toBe('code has been king - specifications called it "real work"...');
+  });
+
   test('清理百度返回的上下文翻译前缀', () => {
     expect(normalizeGlossTranslation('adjective', '非常棒')).toBe('棒');
     expect(normalizeGlossTranslation('noun', '一本书')).toBe('书');
