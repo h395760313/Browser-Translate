@@ -108,6 +108,7 @@ const analyzeSelection = translationRules.analyzeSelection || ((text) => {
 
   return {
     normalizedText,
+    lookupText: strippedText,
     hasChinese,
     hasEnglish,
     isSingleEnglishWord: isSingleWord,
@@ -375,13 +376,16 @@ async function buildSelectionDisplay(selectedText) {
 
   if (analysis.mode === 'single-word') {
     try {
-      const wordDetails = await lookupWordDetails(analysis.normalizedText);
+      const lookupWord = analysis.lookupText || analysis.normalizedText;
+      const [wordDetails, wordbookEntry] = await Promise.all([
+        lookupWordDetails(lookupWord),
+        getWordbookEntry(lookupWord)
+      ]);
       const formattedMeanings = formatWordMeanings(wordDetails.meanings);
-      const wordbookEntry = await getWordbookEntry(analysis.normalizedText);
 
       if (formattedMeanings) {
         return {
-          originalText: formatWordOriginalText(analysis.normalizedText, wordDetails.phonetic),
+          originalText: formatWordOriginalText(lookupWord, wordDetails.phonetic),
           resultText: formattedMeanings,
           resultHtml: renderWordDetailsCard({
             ...wordDetails,
@@ -392,17 +396,17 @@ async function buildSelectionDisplay(selectedText) {
           isWordDetails: true,
           fromLang: 'en',
           toLang: 'zh',
-          originalSpeakText: analysis.normalizedText,
+          originalSpeakText: lookupWord,
           resultSpeakText: formattedMeanings,
           originalSpeakLang: 'en',
           resultSpeakLang: 'zh',
           isInWordbook: Boolean(wordbookEntry),
           wordbookEntry: {
-            word: analysis.normalizedText,
-            displayWord: analysis.normalizedText,
+            word: lookupWord,
+            displayWord: lookupWord,
             phonetic: wordDetails.phonetic || '',
             meanings: Array.isArray(wordDetails.meanings) ? wordDetails.meanings : [],
-            originalText: analysis.normalizedText
+            originalText: lookupWord
           }
         };
       }

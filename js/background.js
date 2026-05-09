@@ -1,16 +1,19 @@
 // Background Service Worker - 处理快捷键、截图和翻译请求
-importScripts('word-details.js');
+importScripts('word-details.js', 'word-lexicon.js');
 
 // 百度翻译配置
 const BAIDU_APP_ID = '20260329002582740';
 const BAIDU_APP_KEY = 'ZxCWWlvGiSUiAW8M9fnl';
 const DICTIONARY_API_BASE = 'https://api.dictionaryapi.dev/api/v2/entries/en/';
 const wordDetailsApi = globalThis.WordDetails || {};
+const wordLexiconApi = globalThis.WordLexicon || {};
+const extractPrimaryMeaning = wordDetailsApi.extractPrimaryMeaning || (() => null);
 const extractMeaningSummaries = wordDetailsApi.extractMeaningSummaries || (() => []);
 const buildPartOfSpeechPrompt = wordDetailsApi.buildPartOfSpeechPrompt || ((word) => word);
 const normalizeGlossTranslation = wordDetailsApi.normalizeGlossTranslation || ((partOfSpeech, text) => text);
 const normalizeEnglishText = wordDetailsApi.normalizeEnglishText || ((text) => String(text || '').replace(/[\u2018\u2019]/g, '\''));
 const normalizeLookupWord = wordDetailsApi.normalizeLookupWord || ((word) => String(word || '').trim().toLowerCase().replace(/[\u2018\u2019]/g, '\''));
+const getLocalWordDetail = wordLexiconApi.getLocalWordDetail || (() => null);
 const pickWordPhonetic = wordDetailsApi.pickWordPhonetic || ((entries) => {
   for (const entry of entries || []) {
     if (entry && entry.phonetic) {
@@ -227,6 +230,99 @@ async function baiduTranslate(text, from, to) {
 }
 
 const WORD_DETAILS_CACHE = new Map();
+const WORD_DETAILS_PENDING = new Map();
+const WORD_DETAILS_CACHE_TTL_MS = 1000 * 60 * 60 * 24 * 30;
+const WORD_DETAILS_STORAGE_PREFIX = 'wordDetailsCache:';
+
+function getWordDetailsStorageKey(word) {
+  return `${WORD_DETAILS_STORAGE_PREFIX}${word}`;
+}
+
+function splitBatchedTranslation(text, expectedCount) {
+  const lines = String(text || '')
+    .split(/\r?\n+/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+
+  if (expectedCount <= 1) {
+    return [lines.join(' ').trim()];
+  }
+
+  if (lines.length === expectedCount) {
+    return lines;
+  }
+
+  if (lines.length > expectedCount) {
+    return [
+      ...lines.slice(0, expectedCount - 1),
+      lines.slice(expectedCount - 1).join(' ')
+    ];
+  }
+
+  return [
+    ...lines,
+    ...new Array(expectedCount - lines.length).fill('')
+  ];
+}
+
+function hasUntranslatedEnglish(text) {
+  return /[A-Za-z]{2,}/.test(String(text || ''));
+}
+
+async function readWordDetailsFromStorage(word) {
+  try {
+    const storageKey = getWordDetailsStorageKey(word);
+    const stored = (await chrome.storage.local.get(storageKey))[storageKey];
+
+    if (!stored || typeof stored !== 'object') {
+      return null;
+    }
+
+    if (!stored.savedAt || (Date.now() - stored.savedAt) > WORD_DETAILS_CACHE_TTL_MS) {
+      await chrome.storage.local.remove(storageKey);
+      return null;
+    }
+
+    return stored.data || null;
+  } catch (error) {
+    console.warn('读取单词缓存失败:', error);
+    return null;
+  }
+}
+
+async function writeWordDetailsToStorage(word, data) {
+  try {
+    await chrome.storage.local.set({
+      [getWordDetailsStorageKey(word)]: {
+        savedAt: Date.now(),
+        data
+      }
+    });
+  } catch (error) {
+    console.warn('写入单词缓存失败:', error);
+  }
+}
+
+async function translatePrimaryMeaning(normalizedWord, meaning) {
+  if (!meaning) {
+    return '';
+  }
+
+  const prompt = buildPartOfSpeechPrompt(normalizedWord, meaning.partOfSpeech);
+  const promptTranslation = normalizeGlossTranslation(
+    meaning.partOfSpeech,
+    await baiduTranslate(prompt, 'en', 'zh')
+  );
+
+  if (promptTranslation && !hasUntranslatedEnglish(promptTranslation)) {
+    return promptTranslation;
+  }
+
+  return normalizeGlossTranslation(
+    meaning.partOfSpeech,
+    await baiduTranslate(meaning.summary, 'en', 'zh')
+  ) || meaning.summary;
+}
 
 async function lookupEnglishWordDetails(word) {
   const normalizedWord = normalizeLookupWord(word);
@@ -239,47 +335,59 @@ async function lookupEnglishWordDetails(word) {
     return WORD_DETAILS_CACHE.get(normalizedWord);
   }
 
-  const response = await fetch(DICTIONARY_API_BASE + encodeURIComponent(normalizedWord));
-  if (!response.ok) {
-    throw new Error('单词详情查询失败');
+  const localWordDetail = getLocalWordDetail(normalizedWord);
+  if (localWordDetail) {
+    WORD_DETAILS_CACHE.set(normalizedWord, localWordDetail);
+    return localWordDetail;
   }
 
-  const entries = await response.json();
-  if (!Array.isArray(entries) || !entries.length) {
-    return { word: normalizedWord, phonetic: '', meanings: [] };
+  const cachedDetails = await readWordDetailsFromStorage(normalizedWord);
+  if (cachedDetails) {
+    WORD_DETAILS_CACHE.set(normalizedWord, cachedDetails);
+    return cachedDetails;
   }
 
-  const phonetic = pickWordPhonetic(entries);
-  const meaningSummaries = extractMeaningSummaries(entries);
-  const translatedMeanings = await Promise.allSettled(
-    meaningSummaries.map(async (meaning) => {
-      const prompt = buildPartOfSpeechPrompt(normalizedWord, meaning.partOfSpeech);
-      const promptTranslation = await baiduTranslate(prompt, 'en', 'zh');
-      const normalizedPromptTranslation = normalizeGlossTranslation(meaning.partOfSpeech, promptTranslation);
+  if (WORD_DETAILS_PENDING.has(normalizedWord)) {
+    return WORD_DETAILS_PENDING.get(normalizedWord);
+  }
 
-      if (normalizedPromptTranslation && !/[A-Za-z]{2,}/.test(normalizedPromptTranslation)) {
-        return normalizedPromptTranslation;
-      }
+  const pendingLookup = (async () => {
+    const response = await fetch(DICTIONARY_API_BASE + encodeURIComponent(normalizedWord));
+    if (!response.ok) {
+      throw new Error('单词详情查询失败');
+    }
 
-      const fallbackTranslation = await baiduTranslate(meaning.summary, 'en', 'zh');
-      return normalizeGlossTranslation(meaning.partOfSpeech, fallbackTranslation);
-    })
-  );
+    const entries = await response.json();
+    if (!Array.isArray(entries) || !entries.length) {
+      return { word: normalizedWord, phonetic: '', meanings: [] };
+    }
 
-  const result = {
-    word: normalizedWord,
-    phonetic,
-    meanings: meaningSummaries.map((meaning, index) => ({
-      partOfSpeech: meaning.partOfSpeech,
-      label: meaning.label,
-      text: translatedMeanings[index].status === 'fulfilled'
-        ? translatedMeanings[index].value
-        : meaning.summary
-    }))
-  };
+    const phonetic = pickWordPhonetic(entries);
+    const primaryMeaning = extractPrimaryMeaning(entries);
+    const translatedMeaning = await translatePrimaryMeaning(normalizedWord, primaryMeaning);
 
-  WORD_DETAILS_CACHE.set(normalizedWord, result);
-  return result;
+    const result = {
+      word: normalizedWord,
+      phonetic,
+      meanings: translatedMeaning ? [{
+        partOfSpeech: primaryMeaning ? primaryMeaning.partOfSpeech : '',
+        label: '',
+        text: translatedMeaning
+      }] : []
+    };
+
+    WORD_DETAILS_CACHE.set(normalizedWord, result);
+    await writeWordDetailsToStorage(normalizedWord, result);
+    return result;
+  })();
+
+  WORD_DETAILS_PENDING.set(normalizedWord, pendingLookup);
+
+  try {
+    return await pendingLookup;
+  } finally {
+    WORD_DETAILS_PENDING.delete(normalizedWord);
+  }
 }
 
 // 监听快捷键命令

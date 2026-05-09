@@ -201,14 +201,49 @@
       .map(({ score, ...meaning }) => meaning);
   }
 
+  function extractPrimaryMeaning(entries) {
+    let bestMeaning = null;
+
+    entries.forEach((entry) => {
+      (entry.meanings || []).forEach((meaning) => {
+        const partOfSpeech = meaning.partOfSpeech || 'other';
+        (meaning.definitions || []).forEach((definition, definitionIndex) => {
+          const summary = compactDefinition(definition.definition);
+          if (!summary) {
+            return;
+          }
+
+          const orderBoost = Math.max(0, 8 - definitionIndex);
+          const candidate = {
+            partOfSpeech,
+            label: getPartOfSpeechLabel(partOfSpeech),
+            summary,
+            score: scoreDefinition(partOfSpeech, definition.definition) + orderBoost
+          };
+
+          if (!bestMeaning || candidate.score > bestMeaning.score) {
+            bestMeaning = candidate;
+          }
+        });
+      });
+    });
+
+    if (!bestMeaning) {
+      return null;
+    }
+
+    const { score, ...meaning } = bestMeaning;
+    return meaning;
+  }
+
   function formatWordMeanings(meanings) {
     if (!Array.isArray(meanings) || !meanings.length) {
       return '';
     }
 
     return meanings
-      .filter((meaning) => meaning && meaning.label && meaning.text)
-      .map((meaning) => `${meaning.label} ${meaning.text}`)
+      .filter((meaning) => meaning && meaning.text)
+      .map((meaning) => meaning.label ? `${meaning.label} ${meaning.text}` : meaning.text)
       .join('\n');
   }
 
@@ -258,7 +293,7 @@
     ` : '';
     const items = meanings.map((meaning) => `
       <li class="word-details-item">
-        <span class="word-details-tag">${escapeHtml(meaning.label)}</span>
+        ${meaning.label ? `<span class="word-details-tag">${escapeHtml(meaning.label)}</span>` : ''}
         <span class="word-details-meaning">${escapeHtml(meaning.text)}</span>
       </li>
     `).join('');
@@ -338,6 +373,7 @@
 
   return {
     getPartOfSpeechLabel,
+    extractPrimaryMeaning,
     extractMeaningSummaries,
     formatWordMeanings,
     normalizeEnglishText,

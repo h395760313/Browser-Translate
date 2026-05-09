@@ -1,5 +1,6 @@
 const {
   extractMeaningSummaries,
+  extractPrimaryMeaning,
   formatWordMeanings,
   renderWordDetailsCard,
   getBubbleModeClass,
@@ -67,6 +68,14 @@ describe('单词详情格式', () => {
     expect(formatted).toBe('n. 小说\nadj. 虚构的');
   });
 
+  test('无词性标签时只展示简短释义文本', () => {
+    const formatted = formatWordMeanings([
+      { label: '', text: '能力' }
+    ]);
+
+    expect(formatted).toBe('能力');
+  });
+
   test('词典卡片按词性渲染清晰列表', () => {
     const html = renderWordDetailsCard({
       word: 'fiction',
@@ -110,6 +119,33 @@ describe('单词详情格式', () => {
   test('单词详情使用单卡片布局类名', () => {
     expect(getBubbleModeClass(true)).toBe('bubble-word-mode');
     expect(getBubbleModeClass(false)).toBe('');
+  });
+
+  test('提取单个最常见释义', () => {
+    const primaryMeaning = extractPrimaryMeaning([
+      {
+        meanings: [
+          {
+            partOfSpeech: 'adjective',
+            definitions: [
+              { definition: 'relating to stories that describe imaginary events' }
+            ]
+          },
+          {
+            partOfSpeech: 'noun',
+            definitions: [
+              { definition: 'a book that tells a story in prose form' }
+            ]
+          }
+        ]
+      }
+    ]);
+
+    expect(primaryMeaning).toEqual({
+      partOfSpeech: 'noun',
+      label: 'n.',
+      summary: 'book that tells a story in prose form'
+    });
   });
 
   test('rad 的形容词义优先选择俚语短释义', () => {

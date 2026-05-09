@@ -47,6 +47,7 @@
     const normalizedText = normalizeSelectionText(text);
     const containsChinese = hasChineseChars(normalizedText);
     const containsEnglish = hasEnglishLetters(normalizedText);
+    const lookupText = normalizedText.replace(WORD_BOUNDARY_STRIP_REGEX, '');
     const singleEnglishWord = isSingleEnglishWord(normalizedText);
 
     let mode = 'translate';
@@ -61,6 +62,7 @@
 
     return {
       normalizedText,
+      lookupText,
       hasChinese: containsChinese,
       hasEnglish: containsEnglish,
       isSingleEnglishWord: singleEnglishWord,

@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "智能翻译助手",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "选中文本自动检测语言并翻译，支持TTS朗读",
   "permissions": [
     "storage",

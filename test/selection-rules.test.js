@@ -35,6 +35,7 @@ describe('选词翻译规则', () => {
 
     expect(analysis.mode).toBe('single-word');
     expect(analysis.normalizedText).toBe('“with,”');
+    expect(analysis.lookupText).toBe('with');
   });
 
   test('带换行和制表符的单个英文单词仍进入单词详情模式', () => {
@@ -46,6 +47,13 @@ describe('选词翻译规则', () => {
 
   test('英文句子仍然走普通整句翻译', () => {
     expect(analyzeSelection('This is a test sentence.').mode).toBe('translate');
+  });
+
+  test('带内部撇号的单词仍进入单词详情模式', () => {
+    const analysis = analyzeSelection('don’t');
+
+    expect(analysis.mode).toBe('single-word');
+    expect(analysis.lookupText).toBe('don’t');
   });
 
   test('带空格的英文短语不会误判成单词模式', () => {
